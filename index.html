@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#050609">
+<meta name="theme-color" content="#168cff">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>🌈 Rainbow 2V2 Tournament</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -411,9 +415,76 @@
     .title{font-size:16px}
     .title::before{height:20px}
   }
+
+
+  /* ===== v2.1 Login / Admin / Settings ===== */
+  .login-overlay{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 20%,rgba(22,140,255,.18),transparent 38%),rgba(3,5,9,.96);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(18px)}
+  .login-card{width:min(440px,100%);padding:28px;border:1px solid var(--line-strong);border-radius:26px;background:linear-gradient(145deg,rgba(18,22,30,.98),rgba(7,9,13,.98));box-shadow:0 30px 90px rgba(0,0,0,.55);text-align:center}
+  .login-logo{font-size:54px;margin-bottom:6px}.login-card h2{margin:0 0 8px}.login-card p{color:var(--muted);margin:0 0 20px}.login-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}.login-tab{padding:11px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font:inherit}.login-tab.active{background:rgba(22,140,255,.16);border-color:#168cff88}.login-fields{display:grid;gap:10px;text-align:right}.login-fields input,.settings-grid input,.settings-grid select{width:100%;box-sizing:border-box;border:1px solid var(--line-strong);background:#07090d;color:var(--text);border-radius:12px;padding:12px;font:inherit}.login-actions{display:grid;gap:9px;margin-top:14px}.user-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 auto 14px;width:min(1100px,94%);padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(10,13,19,.82)}.role-badge{padding:5px 10px;border-radius:999px;background:rgba(22,140,255,.14);color:#8bc7ff;font-size:12px}.role-badge.admin{background:rgba(244,189,63,.14);color:#ffd879}.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.settings-grid label{display:grid;gap:6px;color:var(--muted);font-size:12px}.settings-grid .full{grid-column:1/-1}.admin-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;padding-bottom:10px;border-bottom:1px dashed rgba(244,189,63,.3)}
+.login-fields input:focus,.settings-grid input:focus,.settings-grid select:focus,.admin-grid input:focus{outline:none;border-color:#168cff;box-shadow:0 0 0 3px rgba(22,140,255,.18)}
+.mini-btn:hover{background:rgba(255,255,255,.1);border-color:#168cff88}
+.mini-btn.danger:hover{background:rgba(233,52,69,.15)}.locked-note{padding:10px 12px;border-radius:12px;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);color:#ffd66b;font-size:12px;margin-top:10px}.mode-badge{display:inline-block;margin-right:6px;padding:4px 8px;border-radius:8px;background:rgba(167,108,255,.13);color:#d0b5ff;font-size:11px}@media(max-width:600px){.settings-grid{grid-template-columns:1fr}.settings-grid .full{grid-column:auto}}
+  /* ===== v2.0 Tournament UX ===== */
+  .admin-panel{display:none;margin-top:14px;padding:20px;border:1px solid rgba(244,189,63,.35);border-radius:20px;background:linear-gradient(160deg,rgba(22,140,255,.08),rgba(10,13,19,.94) 40%);backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03)}
+  .admin-panel.show{display:block;animation:adminPop .25s ease}
+  @keyframes adminPop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .admin-grid{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:12px}
+  .admin-grid input{width:100%;border:1px solid var(--line-strong);background:#07090d;color:var(--text);border-radius:12px;padding:11px 13px;font:inherit}
+  .admin-team{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-top:8px}
+  .mini-btn{border:1px solid var(--line-strong);background:rgba(255,255,255,.05);color:var(--text);border-radius:10px;padding:8px 11px;cursor:pointer;font:inherit}
+  .mini-btn.danger{border-color:#e9344566;color:#ff8d98}
+  .score-row{display:grid;grid-template-columns:minmax(0,1fr) 72px 72px 100px;gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.025);margin-top:8px}
+  .score-row .name{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .score-num{font-weight:900;text-align:center}
+  .score-win{color:var(--green)} .score-loss{color:#ff7c87}
+  .progress-wrap{margin-top:14px}
+  .progress-label{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px}
+  .progress-track{height:10px;border-radius:99px;background:#ffffff12;overflow:hidden;margin-top:7px}
+  .progress-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--blue),var(--purple),var(--gold));transition:width .5s ease}
+  .profile-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:#000b;z-index:1000}
+  .profile-modal.show{display:flex}
+  .profile-card{width:min(520px,100%);border:1px solid var(--line-strong);border-radius:22px;background:var(--panel-solid);box-shadow:0 30px 80px #000b;padding:22px}
+  .profile-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .profile-players{margin-top:16px;display:grid;gap:8px}
+  .player-chip{padding:11px 13px;border-radius:12px;background:#ffffff08;border:1px solid var(--line)}
+  .custom-banner{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(90deg,var(--red),var(--gold));color:#fff;text-align:center;padding:14px 16px;font-weight:900;font-size:clamp(16px,3vw,22px);z-index:999;box-shadow:0 -10px 40px #f4bd3f66;transform:translateY(110%);transition:transform .35s ease}
+  .custom-banner.show{transform:translateY(0)}
+  .custom-banner small{display:block;font-size:12px;font-weight:700;opacity:.9}
+  .pwa-note{color:var(--muted);font-size:12px;margin-top:10px}
+  @media (max-width:850px){.score-row{grid-template-columns:minmax(0,1fr) 58px 58px 90px}}
+  @media (max-width:520px){.score-row{grid-template-columns:minmax(0,1fr) 42px 42px 72px;font-size:12px}.admin-team{grid-template-columns:1fr auto auto}.admin-grid{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+    .particle,.topline,h1 span,.final::before,.ring-btn{animation:none!important}
+  }
+
 </style>
 </head>
 <body>
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">🌈</div>
+    <h2>Rainbow Tournament</h2>
+    <p>برای ورود، حالت کاربری خود را انتخاب کنید.</p>
+    <div class="login-tabs">
+      <button class="login-tab active" id="guestTab" onclick="setLoginMode('guest')">👤 ورود مهمان</button>
+      <button class="login-tab" id="adminTab" onclick="setLoginMode('admin')">🔐 ورود مدیر</button>
+    </div>
+    <div class="login-fields" id="adminLoginFields" style="display:none">
+      <input id="loginUser" autocomplete="username" placeholder="نام کاربری">
+      <input id="loginPass" type="password" autocomplete="current-password" placeholder="رمز عبور">
+    </div>
+    <div class="login-actions">
+      <button class="btn primary" onclick="doLogin()">ورود به سایت</button>
+    </div>
+    <div class="muted" style="margin-top:12px;font-size:11px">مهمان فقط مشاهده می‌کند؛ تغییر امتیاز و تنظیمات فقط برای مدیر فعال است.</div>
+  </div>
+</div>
+<div class="user-bar" id="userBar" style="display:none">
+  <span>🌈 Rainbow Tournament <span class="role-badge" id="roleBadge"></span></span>
+  <button class="mini-btn" onclick="logout()">خروج</button>
+</div>
+
 
 <div class="particles" id="particles"></div>
 
@@ -509,6 +580,54 @@
     </div>
   </section>
 
+
+  <!-- ===== جدول امتیازات زنده ===== -->
+  <section class="section">
+    <div class="title">🏆 جدول امتیازات زنده</div>
+    <div id="scoreboard"></div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>پیشرفت تورنومنت</span><strong id="progressText">۰ از ۵ تیم آماده</strong></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+  </section>
+
+  <!-- ===== مدیریت تیم‌ها ===== -->
+  <section class="section">
+    <div class="title">⚙️ مدیریت تیم‌ها</div>
+    <button class="btn" onclick="toggleAdmin()">✏️ ویرایش تیم‌ها</button>
+    <div class="admin-panel" id="adminPanel">
+      <div class="admin-title"><strong>⚙️ تنظیمات مسابقه</strong><span class="mode-badge" id="currentModeBadge">2V2</span></div>
+      <div class="settings-grid">
+        <label>عنوان مسابقات<input id="cfgTitle" placeholder="Rainbow Tournament"></label>
+        <label>نوع مسابقه
+          <select id="cfgMode">
+            <option value="1V1">1 به 1</option><option value="2V2">2 به 2</option><option value="3V3">3 به 3</option><option value="4V4">4 به 4</option><option value="5V5">5 به 5</option><option value="CUSTOM">سفارشی</option>
+          </select>
+        </label>
+        <label>تاریخ مسابقه<input id="cfgDate" type="date"></label>
+        <label>ساعت ورود به روم<input id="cfgRoomTime" type="time"></label>
+        <label>ساعت شروع کاستوم<input id="cfgStartTime" type="time"></label>
+        <label class="full">لینک گروه / بله<input id="cfgGroupLink" type="url" placeholder="https://ble.ir/..."></label>
+        <label>مدت شمارش شروع (ثانیه)<input id="cfgCountdown" type="number" min="5" max="600"></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" onclick="saveTournamentConfig()">💾 ذخیره تنظیمات</button>
+      </div>
+      <div class="locked-note">🔒 این بخش فقط برای مدیر است. مهمان امکان تغییر امتیاز، تیم‌ها یا تنظیمات مسابقه را ندارد.</div>
+      <strong>تیم‌ها روی همین دستگاه ذخیره می‌شوند.</strong>
+      <div id="adminTeams"></div>
+      <div class="admin-grid">
+        <input id="newTeamInput" placeholder="نام تیم جدید، مثال: Player1 + Player2">
+        <button class="btn primary" onclick="addTeam()">➕ افزودن تیم</button>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" onclick="saveAdminTeams()">💾 ذخیره تغییرات</button>
+        <button class="btn" onclick="resetTeams()">↩️ بازنشانی تیم‌های اصلی</button>
+      </div>
+      <div class="pwa-note">برای همگام‌سازی بین چند دستگاه، localStorage کافی نیست و باید بعداً Firebase/Socket.io اضافه شود.</div>
+    </div>
+  </section>
+
   <!-- ===== فینال ===== -->
   <section class="final">
     <strong>🏆 🌈 تیم‌ها آماده باشید! 🌈 🏆</strong>
@@ -530,6 +649,23 @@
   </footer>
 </div>
 
+
+<!-- Team profile -->
+<div class="profile-modal" id="profileModal" onclick="closeProfile(event)">
+  <div class="profile-card" onclick="event.stopPropagation()">
+    <div class="profile-head">
+      <strong id="profileTitle">پروفایل تیم</strong>
+      <button class="mini-btn" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="profile-players" id="profilePlayers"></div>
+  </div>
+</div>
+
+<div class="custom-banner" id="customBanner">
+  <span id="customBannerText">⚔️ آماده ورود به Custom</span>
+  <small>یک دقیقه فرصت دارید</small>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">✓ کپی شد</div>
 
@@ -540,333 +676,472 @@
 </div>
 
 <script>
-function getPersianDate(){
-  try{
-    return new Intl.DateTimeFormat('fa-IR',{
-      weekday:'long', year:'numeric', month:'long', day:'numeric'
-    }).format(new Date());
-  }catch(e){
-    return new Date().toLocaleDateString('fa-IR');
-  }
-}
-document.getElementById('todayDate').textContent = getPersianDate();
-document.getElementById('footerYear').textContent =
-  new Intl.DateTimeFormat('fa-IR',{year:'numeric'}).format(new Date()).replace(/[^0-9۰-۹]/g,'');
-
-const teams = [
+/* ============================================================
+   Rainbow 2V2 Tournament — v2.0
+   ============================================================ */
+const DEFAULT_TEAMS = [
   "Dragon_x4 + Mahan",
   "Kamyar2k + MahanPS5",
   "Rayan + Razhan",
   "Artinatlas + Mehrad",
   "Mahed + ArtinZf"
 ];
-const teamsEl = document.getElementById('teams');
-teams.forEach((t,i)=>{
-  const el = document.createElement('div');
-  el.className = 'team';
-  const initials = t.split('+').map(s=>s.trim()[0]).join('');
-  el.innerHTML = `
-    <div class="info-team">
-      <div class="avatar">${initials}</div>
-      <div class="teamname">${String(i+1).padStart(2,'0')} — ${t}</div>
-    </div>
-    <div class="ready">آماده</div>`;
-  el.onclick = ()=> showToast(`تیم ${i+1}: ${t}`);
-  teamsEl.appendChild(el);
-});
-
+const TEAMS_KEY = "rainbow_teams";
+const SCORES_KEY = "rainbow_scores";
 const ROOM_H = 21, ROOM_M = 30;
 const START_H = 22, START_M = 0;
+const BALE_LINK = "https://ble.ir/join/GXRUPEvXRH";
 
-function makeTarget(h,m){
-  const d = new Date();
-  d.setHours(h,m,0,0);
-  return d;
+const teamsEl = document.getElementById("teams");
+const scoreboardEl = document.getElementById("scoreboard");
+const audioState = { ctx:null, unlocked:false };
+let toastTimer;
+let customCountdownInterval = null;
+let customDeadline = 0;
+let wakeLock = null;
+let lastCycleKey = null;
+
+function faNum(n){
+  return String(n).replace(/\d/g, d=>"۰۱۲۳۴۵۶۷۸۹"[d]);
 }
-function pad(n){ return String(n).padStart(2,'0'); }
+function getPersianDate(){
+  try{
+    return new Intl.DateTimeFormat("fa-IR",{
+      weekday:"long",year:"numeric",month:"long",day:"numeric"
+    }).format(new Date());
+  }catch(e){ return new Date().toLocaleDateString("fa-IR"); }
+}
+function getPersianYear(){
+  try{
+    return new Intl.DateTimeFormat("fa-IR",{year:"numeric"}).format(new Date()).replace(/[^\d۰-۹]/g,"");
+  }catch(e){ return "۱۴۰۵"; }
+}
+document.getElementById("todayDate").textContent = getPersianDate();
+document.getElementById("footerYear").textContent = `سال ${getPersianYear()} هجری شمسی`;
+
+function pad(n){ return String(n).padStart(2,"0"); }
 function fmt(ms){
   if(ms<=0) return "00:00:00";
-  const t = Math.floor(ms/1000);
-  const h = Math.floor(t/3600);
-  const m = Math.floor((t%3600)/60);
-  const s = t%60;
+  const t=Math.floor(ms/1000), h=Math.floor(t/3600), m=Math.floor((t%3600)/60), s=t%60;
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
-
-function updateTimers(){
-  const now = new Date();
-  const roomT = makeTarget(ROOM_H, ROOM_M);
-  const startT = makeTarget(START_H, START_M);
-
-  if(now > startT){
-    roomT.setDate(roomT.getDate()+1);
-    startT.setDate(startT.getDate()+1);
-  }
-
-  const dRoom = roomT - now;
-  const dStart = startT - now;
-
-  document.getElementById('timerRoom').textContent  = fmt(dRoom);
-  document.getElementById('timerStart').textContent = fmt(dStart);
-
-  const total = 24*3600*1000;
-  document.getElementById('barRoom').style.width  = Math.min(100,(1 - dRoom/total)*100)+'%';
-  document.getElementById('barStart').style.width = Math.min(100,(1 - dStart/total)*100)+'%';
-
-  const bRoom  = document.getElementById('bannerRoom');
-  const bStart = document.getElementById('bannerStart');
-  const bEnd   = document.getElementById('bannerEnd');
-  const subRoom  = document.getElementById('subRoom');
-  const subStart = document.getElementById('subStart');
-
-  if(dRoom > 0){
-    bRoom.classList.remove('show');
-    subRoom.textContent = `تا ${Math.floor(dRoom/60000)} دقیقه دیگر`;
-  } else if(dStart > 0){
-    bRoom.classList.add('show');
-    subRoom.textContent = '✅ زمان ورود فرا رسید!';
-  }
-
-  if(dStart > 0){
-    bStart.classList.remove('show');
-    bEnd.classList.remove('show');
-    subStart.textContent = `تا ${Math.floor(dStart/60000)} دقیقه دیگر`;
-  } else {
-    const pastStart = -dStart;
-    if(pastStart < 10*60*1000){
-      bStart.classList.add('show');
-      bEnd.classList.remove('show');
-      subStart.textContent = '🔥 مسابقات شروع شده!';
-    } else {
-      bStart.classList.remove('show');
-      bEnd.classList.add('show');
-      subStart.textContent = '⏹ مهلت ورود تمام شد';
-    }
-  }
+function makeTarget(h,m){
+  const d=new Date(); d.setHours(h,m,0,0); return d;
+}
+function getNextTarget(h,m){
+  const d=makeTarget(h,m);
+  if(d.getTime()<=Date.now()) d.setDate(d.getDate()+1);
+  return d;
 }
 
-/* ============================================================
-   نوتیفیکیشن مرورگر (Push/System Notification)
-   ============================================================ */
-function sendNotification(title, body){
-  if(navigator.vibrate){ navigator.vibrate([300,120,300,120,600]); }
-  if(!("Notification" in window)) return;
-  if(Notification.permission === "granted"){
-    try{
-      const n = new Notification(title, {
-        body: body,
-        icon: "https://cdn-icons-png.flaticon.com/512/686/686589.png",
-        tag: title,
-        renotify: true,
-        requireInteraction: true
-      });
-      n.onclick = ()=>{ window.focus(); n.close(); };
-    }catch(e){}
-  }
+/* ===== Teams / localStorage ===== */
+function loadTeams(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(TEAMS_KEY)||"null");
+    return Array.isArray(saved)&&saved.length ? saved.filter(Boolean).slice(0,16) : [...DEFAULT_TEAMS];
+  }catch(e){ return [...DEFAULT_TEAMS]; }
 }
-
-function updateNotifBtn(){
-  const btn = document.getElementById('notifBtn');
-  if(!btn) return;
-  if(!("Notification" in window)){
-    btn.textContent = '🔕 پشتیبانی نمی‌شود';
-    btn.disabled = true;
-    return;
-  }
-  if(Notification.permission === "granted"){
-    btn.textContent = '✅ نوتیفیکیشن فعال است';
-  } else if(Notification.permission === "denied"){
-    btn.textContent = '🚫 نوتیفیکیشن مسدود شده';
-  } else {
-    btn.textContent = '🔔 فعال‌سازی نوتیفیکیشن';
-  }
+function saveTeams(list){
+  const clean=list.map(s=>String(s).trim()).filter(Boolean).slice(0,16);
+  localStorage.setItem(TEAMS_KEY,JSON.stringify(clean));
+  renderTeams(); renderAdminTeams(); renderScoreboard();
 }
-
-function enableNotifications(){
-  if(!("Notification" in window)){
-    showToast('❌ مرورگر شما نوتیفیکیشن را پشتیبانی نمی‌کند');
-    return;
-  }
-  Notification.requestPermission().then(perm=>{
-    updateNotifBtn();
-    if(perm === "granted"){
-      showToast('🔔 نوتیفیکیشن فعال شد!');
-      sendNotification('🌈 Rainbow 2V2 Tournament', 'نوتیفیکیشن‌ها با موفقیت فعال شدند ✅');
-    } else {
-      showToast('⚠️ اجازه نوتیفیکیشن داده نشد');
-    }
+function teamPlayers(team){ return team.split("+").map(s=>s.trim()).filter(Boolean); }
+function initials(team){
+  return teamPlayers(team).map(s=>s[0]||"").join("").slice(0,3).toUpperCase();
+}
+function renderTeams(){
+  const teams=loadTeams();
+  teamsEl.innerHTML="";
+  teams.forEach((t,i)=>{
+    const el=document.createElement("div");
+    el.className="team";
+    el.tabIndex=0;
+    el.innerHTML=`<div class="info-team"><div class="avatar">${initials(t)}</div><div class="teamname">${faNum(i+1).padStart(2,"۰")} — ${escapeHtml(t)}</div></div><div class="ready">آماده</div>`;
+    el.onclick=()=>openProfile(i);
+    el.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")openProfile(i)};
+    teamsEl.appendChild(el);
+  });
+  updateProgress();
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+}
+function toggleAdmin(){
+  if(!isAdmin()){showToast("🔒 فقط مدیر دسترسی دارد");return;}
+  const panel=document.getElementById("adminPanel");
+  panel.classList.toggle("show");
+  if(panel.classList.contains("show")) renderAdminTeams();
+}
+function renderAdminTeams(){
+  const wrap=document.getElementById("adminTeams");
+  if(!wrap) return;
+  wrap.innerHTML="";
+  loadTeams().forEach((team,i)=>{
+    const row=document.createElement("div");
+    row.className="admin-team";
+    row.innerHTML=`<input value="${escapeHtml(team)}" aria-label="نام تیم ${i+1}"><button class="mini-btn" onclick="moveTeam(${i},-1)">↑</button><button class="mini-btn danger" onclick="removeTeam(${i})">حذف</button>`;
+    wrap.appendChild(row);
   });
 }
-updateNotifBtn();
-
-let notifiedReminderRoom = false, notifiedRoom = false;
-let notifiedReminderStart = false, notifiedStart = false;
-function checkNotifications(){
-  const now = new Date();
-  const rT = makeTarget(ROOM_H, ROOM_M);
-  const sT = makeTarget(START_H, START_M);
-  const dRoom = rT - now;
-  const dStart = sT - now;
-
-  /* یادآوری ۵ دقیقه قبل از ورود به روم */
-  if(!notifiedReminderRoom && dRoom <= 5*60*1000 && dRoom > 4*60*1000){
-    notifiedReminderRoom = true;
-    playBeep(660);
-    showToast('⏳ ۵ دقیقه تا ورود به روم Rainbow!');
-    sendNotification('⏳ یادآوری تورنومنت', '۵ دقیقه تا ورود به روم Rainbow — ساعت ۲۱:۳۰');
-  }
-  if(!notifiedRoom && now >= rT && now < new Date(rT.getTime()+60000)){
-    notifiedRoom = true;
-    showToast('🎧 زمان ورود به روم فرا رسید!');
-    sendNotification('🎧 زمان ورود به روم!', 'همین الان وارد روم Rainbow شوید.');
-    ringPhone(6);
-  }
-
-  /* یادآوری ۵ دقیقه قبل از ورود به کاستوم */
-  if(!notifiedReminderStart && dStart <= 5*60*1000 && dStart > 4*60*1000){
-    notifiedReminderStart = true;
-    playBeep(660);
-    showToast('⏳ ۵ دقیقه تا ورود به کاستوم!');
-    sendNotification('⏳ یادآوری تورنومنت', '۵ دقیقه تا ورود به کاستوم — ساعت ۲۲:۰۰');
-  }
-  if(!notifiedStart && now >= sT && now < new Date(sT.getTime()+60000)){
-    notifiedStart = true;
-    showToast('🔥 مسابقات شروع شد!');
-    sendNotification('🔥 مسابقات شروع شد!', 'همین الان وارد Custom شوید — ۱ دقیقه فرصت دارید.');
-    ringPhone(8);
-  }
+function getAdminList(){
+  return [...document.querySelectorAll("#adminTeams input")].map(i=>i.value);
+}
+function saveAdminTeams(){
+  if(!isAdmin()){showToast("🔒 دسترسی مدیر لازم است");return;}
+  const list=getAdminList();
+  if(!list.filter(Boolean).length){showToast("❌ حداقل یک تیم لازم است");return;}
+  saveTeams(list); showToast("✅ تیم‌ها ذخیره شدند");
+}
+function addTeam(){
+  if(!isAdmin()){showToast("🔒 دسترسی مدیر لازم است");return;}
+  const input=document.getElementById("newTeamInput");
+  const value=input.value.trim();
+  if(!value){showToast("⚠️ نام تیم را وارد کنید");return;}
+  const list=getAdminList(); list.push(value); saveTeams(list); input.value=""; showToast("➕ تیم اضافه شد");
+}
+function removeTeam(i){
+  if(!isAdmin()){showToast("🔒 دسترسی مدیر لازم است");return;}
+  const list=getAdminList(); list.splice(i,1); saveTeams(list); renderAdminTeams();
+}
+function moveTeam(i,dir){
+  if(!isAdmin()){showToast("🔒 دسترسی مدیر لازم است");return;}
+  const list=getAdminList(), j=i+dir;
+  if(j<0||j>=list.length) return;
+  [list[i],list[j]]=[list[j],list[i]]; saveTeams(list); renderAdminTeams();
+}
+function resetTeams(){
+  if(!isAdmin()){showToast("🔒 دسترسی مدیر لازم است");return;}
+  localStorage.removeItem(TEAMS_KEY); renderTeams(); renderAdminTeams(); showToast("↩️ تیم‌ها بازنشانی شدند");
 }
 
-/* زنگ واقعی گوشی: لرزش مداوم + صدای زنگ تکرارشونده، دقیقاً مثل دکمه «زنگ بزن» */
+/* ===== Profiles ===== */
+function openProfile(i){
+  const team=loadTeams()[i]; if(!team)return;
+  document.getElementById("profileTitle").textContent=`👤 پروفایل تیم ${faNum(i+1)}`;
+  document.getElementById("profilePlayers").innerHTML=teamPlayers(team).map((p,j)=>`<div class="player-chip">🎮 بازیکن ${faNum(j+1)}: <strong>${escapeHtml(p)}</strong></div>`).join("");
+  document.getElementById("profileModal").classList.add("show");
+}
+function closeProfile(e){
+  if(!e||e.target===document.getElementById("profileModal")) document.getElementById("profileModal").classList.remove("show");
+}
+
+/* ===== Scores ===== */
+function loadScores(){
+  try{return JSON.parse(localStorage.getItem(SCORES_KEY)||"{}")||{};}catch(e){return {};}
+}
+function renderScoreboard(){
+  const teams=loadTeams(), scores=loadScores();
+  scoreboardEl.innerHTML=teams.map((team,i)=>{
+    const s=scores[team]||{win:0,loss:0};
+    return `<div class="score-row">
+      <div class="name">${faNum(i+1)} — ${escapeHtml(team)}</div>
+      <div class="score-num score-win">${faNum(s.win||0)} برد</div>
+      <div class="score-num score-loss">${faNum(s.loss||0)} باخت</div>
+      <button class="mini-btn score-edit-btn" onclick="editScore(${i})">✏️ امتیاز</button>
+    </div>`;
+  }).join("") || `<div class="muted">هنوز تیمی ثبت نشده است.</div>`;
+}
+function editScore(i){
+  if(!isAdmin()){showToast("👤 مهمان فقط امکان مشاهده امتیازها را دارد");return;}
+  const team=loadTeams()[i], scores=loadScores(), s=scores[team]||{win:0,loss:0};
+  const win=prompt(`تعداد برد «${team}»:`,s.win??0);
+  if(win===null)return;
+  const loss=prompt(`تعداد باخت «${team}»:`,s.loss??0);
+  if(loss===null)return;
+  scores[team]={win:Math.max(0,parseInt(win)||0),loss:Math.max(0,parseInt(loss)||0)};
+  localStorage.setItem(SCORES_KEY,JSON.stringify(scores)); renderScoreboard();
+}
+function updateProgress(){
+  const total=loadTeams().length;
+  const ready=total; // وضعیت فعلی صفحه همه تیم‌ها را آماده نشان می‌دهد
+  document.getElementById("progressText").textContent=`${faNum(ready)} از ${faNum(total)} تیم آماده`;
+  document.getElementById("progressFill").style.width=total?`${ready/total*100}%`:"0%";
+}
+
+/* ===== Audio ===== */
+function initAudio(){
+  try{
+    if(!audioState.ctx) audioState.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioState.ctx.state==="suspended") audioState.ctx.resume();
+    audioState.unlocked=true;
+  }catch(e){}
+}
+function playBeep(freq=1000,duration=220){
+  if(!audioState.unlocked) return;
+  try{
+    const ctx=audioState.ctx, o=ctx.createOscillator(), g=ctx.createGain();
+    o.type="sine"; o.frequency.value=freq; g.gain.value=.16;
+    o.connect(g); g.connect(ctx.destination); o.start();
+    setTimeout(()=>{try{o.stop()}catch(e){}},duration);
+  }catch(e){}
+}
+function playRingtone(times=4){
+  if(!audioState.unlocked)return;
+  let i=0;
+  const tick=()=>{
+    if(i++>=times)return;
+    playBeep(1000,180); setTimeout(()=>playBeep(1400,180),180); setTimeout(tick,520);
+  };
+  tick();
+}
 function ringPhone(times=6){
   if(navigator.vibrate){
-    const pattern = [];
-    for(let i=0;i<times;i++){ pattern.push(450,180); }
+    const pattern=[]; for(let i=0;i<times;i++)pattern.push(450,180);
     navigator.vibrate(pattern);
   }
   playRingtone(times);
 }
+["pointerdown","touchstart","click","keydown"].forEach(ev=>document.addEventListener(ev,initAudio,{once:true,passive:true}));
 
-function playBeep(freq){
+/* ===== Notifications ===== */
+function sendNotification(title,body){
+  if(navigator.vibrate) navigator.vibrate([300,120,300,120,600]);
+  if(!("Notification" in window)||Notification.permission!=="granted")return;
   try{
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
-    g.gain.value = 0.15;
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    setTimeout(()=>{o.stop(); ctx.close();}, 250);
+    const n=new Notification(title,{body,tag:title,renotify:true,requireInteraction:true});
+    n.onclick=()=>{window.focus();n.close()};
   }catch(e){}
 }
-
-function playRingtone(times=4){
-  let i = 0;
-  const tick = ()=>{
-    if(i >= times) return;
-    playBeep(1000);
-    setTimeout(()=>playBeep(1400), 180);
-    i++;
-    setTimeout(tick, 500);
-  };
-  tick();
+function updateNotifBtn(){
+  const btn=document.getElementById("notifBtn"); if(!btn)return;
+  if(!("Notification" in window)){btn.textContent="🔕 پشتیبانی نمی‌شود";btn.disabled=true;return;}
+  btn.disabled=false;
+  btn.textContent=Notification.permission==="granted"?"✅ نوتیفیکیشن فعال است":Notification.permission==="denied"?"🚫 نوتیفیکیشن مسدود شده":"🔔 فعال‌سازی نوتیفیکیشن";
+}
+async function enableNotifications(){
+  if(!("Notification" in window)){showToast("❌ مرورگر شما نوتیفیکیشن را پشتیبانی نمی‌کند");return;}
+  try{
+    const perm=await Notification.requestPermission(); updateNotifBtn();
+    if(perm==="granted"){showToast("🔔 نوتیفیکیشن فعال شد!");sendNotification("🌈 Rainbow 2V2 Tournament","نوتیفیکیشن‌ها با موفقیت فعال شدند ✅");}
+    else showToast("⚠️ اجازه نوتیفیکیشن داده نشد");
+  }catch(e){showToast("❌ فعال‌سازی نوتیفیکیشن ممکن نشد")}
 }
 
+/* ===== Timers ===== */
+function parseClock(v){const [h,m]=String(v||"21:30").split(":").map(Number);return {h:Number.isFinite(h)?h:21,m:Number.isFinite(m)?m:30}}
+function getNextConfiguredTarget(timeValue){
+  const c=loadConfig(), t=parseClock(timeValue), now=new Date(), target=new Date(now);
+  if(c.date){const [y,mo,d]=c.date.split("-").map(Number);target.setFullYear(y,mo-1,d)}
+  target.setHours(t.h,t.m,0,0);
+  if(!c.date && target<=now)target.setDate(target.getDate()+1);
+  return target;
+}
+function updateTimerLabels(){
+  const c=loadConfig(), modeLabel=c.mode==="CUSTOM"?"سفارشی":c.mode.replace("V"," به ");
+  document.title=c.title||"Rainbow Tournament";
+  document.querySelectorAll(".mode-badge").forEach(x=>x.textContent=modeLabel);
+  const heads=document.querySelectorAll(".timer-card .head");
+  if(heads[0])heads[0].innerHTML=`🎧 ورود به <strong>روم Rainbow</strong> — ساعت ${faNum(c.roomTime)}`;
+  if(heads[1])heads[1].innerHTML=`🔥 ورود به کاستوم — ساعت <strong>${faNum(c.startTime)}</strong> <span class="mode-badge">${escapeHtml(modeLabel)}</span>`;
+}
+function updateTimers(){
+  const c=loadConfig(), now=new Date(), roomT=getNextConfiguredTarget(c.roomTime), startT=getNextConfiguredTarget(c.startTime);
+  const dRoom=roomT-now, dStart=startT-now;
+  document.getElementById("timerRoom").textContent=fmt(dRoom);
+  document.getElementById("timerStart").textContent=fmt(dStart);
+  const total=24*3600*1000;
+  document.getElementById("barRoom").style.width=Math.min(100,Math.max(0,(1-dRoom/total)*100))+"%";
+  document.getElementById("barStart").style.width=Math.min(100,Math.max(0,(1-dStart/total)*100))+"%";
+  const bRoom=document.getElementById("bannerRoom"),bStart=document.getElementById("bannerStart"),bEnd=document.getElementById("bannerEnd");
+  const subRoom=document.getElementById("subRoom"),subStart=document.getElementById("subStart");
+  if(dRoom>0){bRoom.classList.remove("show");subRoom.textContent=`تا ${faNum(Math.floor(dRoom/60000))} دقیقه دیگر`;}
+  else{bRoom.classList.add("show");subRoom.textContent="✅ زمان ورود فرا رسید!";}
+  if(dStart>0){bStart.classList.remove("show");bEnd.classList.remove("show");subStart.textContent=`تا ${faNum(Math.floor(dStart/60000))} دقیقه دیگر`;}
+  else if(-dStart<10*60*1000){bStart.classList.add("show");bEnd.classList.remove("show");subStart.textContent="🔥 مسابقات شروع شده!";}
+  else{bStart.classList.remove("show");bEnd.classList.add("show");subStart.textContent="⏹ مهلت ورود تمام شد";}
+  const link=document.querySelector('a[href*="ble.ir"]'); if(link)link.href=c.groupLink||DEFAULT_CONFIG.groupLink;
+  updateTimerLabels();
+}
+
+/* ===== One-minute Custom countdown ===== */
+function startCustomCountdown(cycleKey){
+  if(customCountdownInterval)clearInterval(customCountdownInterval);
+  customDeadline=Date.now()+(Math.max(5,Math.min(600,Number(loadConfig().countdown)||60))*1000);
+  const banner=document.getElementById("customBanner");
+  banner.classList.add("show");
+  function tick(){
+    const left=Math.max(0,customDeadline-Date.now());
+    if(left<=0){
+      banner.querySelector("span").textContent="🚀 بازی شروع شد!";
+      clearInterval(customCountdownInterval); customCountdownInterval=null;
+      setTimeout(()=>banner.classList.remove("show"),3500);
+      return;
+    }
+    banner.querySelector("span").textContent=`⚔️ بازی در ${faNum(Math.ceil(left/1000))} ثانیه شروع می‌شود! وارد کاستوم شوید`;
+  }
+  tick(); customCountdownInterval=setInterval(tick,250);
+  ringPhone(8);
+  sendNotification("🔥 مسابقات شروع شد!","همین الان وارد Custom شوید — ۱ دقیقه فرصت دارید.");
+}
+function checkNotifications(){
+  const c=loadConfig();
+  const now=new Date(), roomT=getNextConfiguredTarget(c.roomTime), startT=getNextConfiguredTarget(c.startTime);
+  const cycleKey=new Intl.DateTimeFormat("en-CA").format(now);
+  if(now>=startT && now<new Date(startT.getTime()+60000) && lastCycleKey!==cycleKey){
+    lastCycleKey=cycleKey;
+    showToast("🔥 مسابقات شروع شد!");
+    startCustomCountdown(cycleKey);
+  }
+  const dRoom=roomT-now, dStart=startT-now;
+  if(dRoom<=5*60000&&dRoom>4*60000){
+    const k="room5-"+cycleKey;
+    if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,"1");playBeep(660);showToast("⏳ ۵ دقیقه تا ورود به روم Rainbow!");sendNotification("⏳ یادآوری تورنومنت","۵ دقیقه تا ورود به روم Rainbow — ساعت ۲۱:۳۰");}
+  }
+  if(now>=roomT&&now<roomT.getTime()+60000){
+    const k="room-"+cycleKey;
+    if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,"1");showToast("🎧 زمان ورود به روم فرا رسید!");sendNotification("🎧 زمان ورود به روم!","همین الان وارد روم Rainbow شوید.");ringPhone(6);}
+  }
+  if(dStart<=5*60000&&dStart>4*60000){
+    const k="start5-"+cycleKey;
+    if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,"1");playBeep(660);showToast("⏳ ۵ دقیقه تا ورود به کاستوم!");sendNotification("⏳ یادآوری تورنومنت","۵ دقیقه تا ورود به کاستوم — ساعت ۲۲:۰۰");}
+  }
+}
+
+/* ===== Manual ring buttons ===== */
 function ringNow(which){
+  initAudio();
   ringPhone(4);
-  const label = which === 'room'
-    ? '🎧 یادآوری: الان وارد روم Rainbow شوید!'
-    : '🔥 یادآوری: الان وارد کاستوم شوید!';
+  const label=which==="room"?"🎧 یادآوری: الان وارد روم Rainbow شوید!":"🔥 یادآوری: الان وارد کاستوم شوید!";
   showToast(label);
-  sendNotification('📞 Rainbow 2V2 — زنگ یادآوری', label);
+  sendNotification("📞 Rainbow 2V2 — زنگ یادآوری",label);
 }
 
-let toastTimer;
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+/* ===== Wake Lock ===== */
+async function requestWakeLock(){
+  try{
+    if("wakeLock" in navigator && document.visibilityState==="visible"){
+      if(!wakeLock) wakeLock=await navigator.wakeLock.request("screen");
+    }
+  }catch(e){}
 }
-
-function openLightbox(el){
-  const img = el.querySelector('img');
-  document.getElementById('lightboxImg').src = img.src;
-  document.getElementById('lightbox').classList.add('show');
-}
-function closeLightbox(){
-  document.getElementById('lightbox').classList.remove('show');
-}
-document.addEventListener('keydown', e=>{
-  if(e.key === 'Escape') closeLightbox();
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible")requestWakeLock();
 });
+document.addEventListener("pointerdown",requestWakeLock,{once:true,passive:true});
+
+/* ===== UI ===== */
+function showToast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+function openLightbox(el){
+  const img=el.querySelector("img");document.getElementById("lightboxImg").src=img.src;document.getElementById("lightbox").classList.add("show");
+}
+function closeLightbox(){document.getElementById("lightbox").classList.remove("show")}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeLightbox();closeProfile();}});
 
 async function shareIt(){
-  if(navigator.share){
-    try{
-      await navigator.share({
-        title: '🌈 Rainbow 2V2 Tournament',
-        text: 'آخرین تورنومنت 2V2 — ساعت ۲۱:۳۰ در روم باشید!',
-        url: location.href
-      });
-    }catch(e){}
-  } else {
-    copyLink();
-  }
+  if(navigator.share){try{await navigator.share({title:"🌈 Rainbow 2V2 Tournament",text:"آخرین تورنومنت 2V2 — ساعت ۲۱:۳۰ در روم باشید!",url:location.href});}catch(e){}}
+  else copyLink();
 }
 function copyLink(){
-  const url = location.href;
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(url).then(
-      ()=> showToast('🔗 لینک کپی شد!'),
-      ()=> fallbackCopy(url)
-    );
-  } else {
-    fallbackCopy(url);
-  }
+  const url=location.href;
+  if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>showToast("🔗 لینک کپی شد!"),()=>fallbackCopy(url));
+  else fallbackCopy(url);
 }
 function fallbackCopy(text){
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  document.body.appendChild(ta);
-  ta.select();
-  try{ document.execCommand('copy'); showToast('🔗 لینک کپی شد!'); }
-  catch(e){ showToast('❌ کپی نشد'); }
-  document.body.removeChild(ta);
+  const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");showToast("🔗 لینک کپی شد!")}catch(e){showToast("❌ کپی نشد")}
+  ta.remove();
 }
 function toggleFullscreen(){
-  if(!document.fullscreenElement){
-    document.documentElement.requestFullscreen?.();
-  } else {
-    document.exitFullscreen?.();
-  }
+  if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();
 }
 
+/* ===== Particles, disabled for reduced motion ===== */
 (function createParticles(){
-  const wrap = document.getElementById('particles');
-  const count = window.innerWidth < 600 ? 15 : 30;
+  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+  const wrap=document.getElementById("particles"),count=window.innerWidth<600?15:30;
   for(let i=0;i<count;i++){
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const size = 2 + Math.random()*4;
-    p.style.width  = size+'px';
-    p.style.height = size+'px';
-    p.style.left   = Math.random()*100+'%';
-    p.style.animationDuration = (12 + Math.random()*18)+'s';
-    p.style.animationDelay = (Math.random()*15)+'s';
-    const colors = ['#168cff','#a76cff','#f4bd3f'];
-    const c = colors[Math.floor(Math.random()*colors.length)];
-    p.style.background = c;
-    p.style.boxShadow = `0 0 ${size*3}px ${c}, 0 0 ${size*6}px ${c}`;
-    wrap.appendChild(p);
+    const p=document.createElement("div");p.className="particle";const size=2+Math.random()*4;
+    p.style.width=size+"px";p.style.height=size+"px";p.style.left=Math.random()*100+"%";
+    p.style.animationDuration=12+Math.random()*18+"s";p.style.animationDelay=Math.random()*15+"s";
+    const c=["#168cff","#a76cff","#f4bd3f"][Math.floor(Math.random()*3)];
+    p.style.background=c;p.style.boxShadow=`0 0 ${size*3}px ${c},0 0 ${size*6}px ${c}`;wrap.appendChild(p);
   }
 })();
 
+/* ===== Authentication & Tournament Settings ===== */
+const ROLE_KEY="rainbow_role";
+const CONFIG_KEY="rainbow_config";
+const ADMIN_USER="dragon";
+const ADMIN_PASS="tournament";
+const DEFAULT_CONFIG={
+  title:"Rainbow Tournament",
+  mode:"2V2",
+  date:"",
+  roomTime:"21:30",
+  startTime:"22:00",
+  groupLink:BALE_LINK,
+  countdown:60
+};
+function getRole(){
+  try{ return sessionStorage.getItem(ROLE_KEY) || null; }catch(e){ return null; }
+}
+function isAdmin(){
+  return getRole()==="admin";
+}
+function loadConfig(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(CONFIG_KEY)||"null");
+    return saved && typeof saved==="object" ? {...DEFAULT_CONFIG,...saved} : {...DEFAULT_CONFIG};
+  }catch(e){ return {...DEFAULT_CONFIG}; }
+}
+function saveConfig(c){
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
+}
+let tournamentConfig=loadConfig();
+let loginMode="guest";
+function setLoginMode(mode){
+  loginMode=mode;
+  document.getElementById("guestTab").classList.toggle("active",mode==="guest");
+  document.getElementById("adminTab").classList.toggle("active",mode==="admin");
+  document.getElementById("adminLoginFields").style.display=mode==="admin"?"grid":"none";
+}
+function applyRoleUI(){
+  const admin=isAdmin(), bar=document.getElementById("userBar"), badge=document.getElementById("roleBadge");
+  bar.style.display="flex"; badge.textContent=admin?"🔐 مدیر":"👤 مهمان"; badge.classList.toggle("admin",admin);
+  document.querySelectorAll(".score-edit-btn").forEach(b=>{b.style.display=admin?"inline-block":"none";});
+  document.querySelectorAll("#adminPanel").forEach(el=>el.classList.remove("show"));
+  updateTimerLabels();
+}
+function doLogin(){
+  if(loginMode==="guest"){sessionStorage.setItem(ROLE_KEY,"guest");document.getElementById("loginOverlay").style.display="none";applyRoleUI();showToast("👤 با حالت مهمان وارد شدید");return;}
+  const u=(document.getElementById("loginUser").value||"").trim(), p=document.getElementById("loginPass").value||"";
+  if(u==="dragon" && p==="tournament"){sessionStorage.setItem(ROLE_KEY,"admin");document.getElementById("loginOverlay").style.display="none";applyRoleUI();loadConfigToForm();showToast("🔐 ورود مدیر موفق بود");}
+  else showToast("❌ نام کاربری یا رمز عبور اشتباه است");
+}
+function logout(){sessionStorage.removeItem(ROLE_KEY);location.reload();}
+function loadConfigToForm(){
+  if(!isAdmin())return;
+  const c=loadConfig();
+  document.getElementById("cfgTitle").value=c.title||"";
+  document.getElementById("cfgMode").value=c.mode||"2V2";
+  document.getElementById("cfgDate").value=c.date||"";
+  document.getElementById("cfgRoomTime").value=c.roomTime||"21:30";
+  document.getElementById("cfgStartTime").value=c.startTime||"22:00";
+  document.getElementById("cfgGroupLink").value=c.groupLink||"";
+  document.getElementById("cfgCountdown").value=c.countdown||60;
+}
+function saveTournamentConfig(){
+  if(!isAdmin()){showToast("🔒 فقط مدیر می‌تواند تنظیمات را تغییر دهد");return;}
+  const c={title:document.getElementById("cfgTitle").value.trim()||"Rainbow Tournament",mode:document.getElementById("cfgMode").value,date:document.getElementById("cfgDate").value,roomTime:document.getElementById("cfgRoomTime").value||"21:30",startTime:document.getElementById("cfgStartTime").value||"22:00",groupLink:document.getElementById("cfgGroupLink").value.trim()||DEFAULT_CONFIG.groupLink,countdown:Math.max(5,Math.min(600,parseInt(document.getElementById("cfgCountdown").value)||60))};
+  saveConfig(c); tournamentConfig=c; renderTeams(); renderScoreboard(); updateTimers(); showToast("✅ تنظیمات مسابقه ذخیره شد");
+}
+/* ===== Init ===== */
+if(isAdmin() || getRole()==="guest"){document.getElementById("loginOverlay").style.display="none";applyRoleUI();if(isAdmin())loadConfigToForm();}else{setLoginMode("guest");}
+renderTeams();
+renderAdminTeams();
+renderScoreboard();
+updateNotifBtn();
 updateTimers();
 checkNotifications();
-setInterval(()=>{ updateTimers(); checkNotifications(); }, 1000);
+setInterval(()=>{updateTimers();checkNotifications();},1000);
+
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
 </script>
 
 </body>
