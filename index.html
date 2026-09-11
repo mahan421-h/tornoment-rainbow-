@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#050609">
-<title>🌈 Rainbow 2VS2 Tournament</title>
+<title>🌈 Rainbow 2V2 Tournament</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -129,6 +129,11 @@
     display:block;color:var(--blue);
     text-shadow:0 0 24px var(--blue),0 0 60px var(--blue-glow);
     letter-spacing:6px;
+    animation:glowFlicker 3s ease-in-out infinite;
+  }
+  @keyframes glowFlicker{
+    0%,100%{text-shadow:0 0 24px var(--blue),0 0 60px var(--blue-glow)}
+    50%{text-shadow:0 0 40px var(--blue),0 0 90px var(--blue-glow),0 0 120px var(--purple)}
   }
   .subtitle{color:#c3c7cf;font-size:15px;line-height:2;max-width:560px}
   .info-row{
@@ -218,6 +223,21 @@
     box-shadow:0 0 14px var(--blue);
   }
   .timer-card.gold .progress > i{background:linear-gradient(90deg,var(--gold),var(--red));box-shadow:0 0 14px var(--gold)}
+  .ring-btn{
+    margin-top:14px;width:100%;justify-content:center;
+    background:linear-gradient(135deg,var(--blue),var(--purple));
+    border-color:transparent;color:#fff;
+    box-shadow:0 6px 20px var(--blue-glow);
+    animation:ringPulse 1.8s infinite;
+  }
+  .ring-btn.gold{
+    background:linear-gradient(135deg,var(--gold),var(--red));
+    box-shadow:0 6px 20px var(--gold-glow);
+  }
+  @keyframes ringPulse{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.03)}
+  }
   .status-banner{
     display:none;margin-top:14px;padding:14px;
     border-radius:14px;text-align:center;font-weight:800;font-size:14px;
@@ -332,36 +352,6 @@
     box-shadow:0 6px 24px var(--blue-glow);
   }
   .btn.primary:hover{box-shadow:0 8px 30px var(--blue-glow)}
-  .btn.notif{position:relative;overflow:visible}
-  .btn.notif .dot{
-    position:absolute;top:-4px;left:-4px;
-    width:10px;height:10px;border-radius:50%;
-    background:var(--red);border:2px solid var(--bg);
-    display:none;
-  }
-  .btn.notif.denied{opacity:.55;filter:grayscale(.4)}
-  .btn.notif.active{
-    background:linear-gradient(135deg,var(--green),#0fae63);
-    border-color:transparent;color:#04140b;
-    box-shadow:0 6px 24px #20d67a55;
-    animation:notifPulse 2.4s ease-in-out infinite;
-  }
-  .btn.notif.active .dot{display:block;background:var(--gold)}
-  @keyframes notifPulse{
-    0%,100%{box-shadow:0 6px 24px #20d67a55}
-    50%{box-shadow:0 6px 34px #20d67aaa,0 0 0 6px #20d67a22}
-  }
-  .btn.notif .bell{display:inline-block;transform-origin:top center}
-  .btn.notif.active .bell{animation:bellRing 3.2s ease-in-out infinite}
-  @keyframes bellRing{
-    0%,80%,100%{transform:rotate(0)}
-    82%{transform:rotate(14deg)}
-    84%{transform:rotate(-12deg)}
-    86%{transform:rotate(9deg)}
-    88%{transform:rotate(-6deg)}
-    90%{transform:rotate(3deg)}
-    92%{transform:rotate(0)}
-  }
   .toast{
     position:fixed;bottom:24px;right:50%;transform:translate(50%,80px);
     background:var(--panel-solid);
@@ -439,7 +429,7 @@
 
       <div class="info-row">
         <div class="info"><div class="label">📅 تاریخ</div><div class="value" id="todayDate">—</div></div>
-        <div class="info"><div class="label">🎮 حالت</div><div class="value">2VS2</div></div>
+        <div class="info"><div class="label">🎮 حالت</div><div class="value">2V2</div></div>
         <div class="info"><div class="label">👥 حضور در روم</div><div class="value">۲۱:۳۰</div></div>
         <div class="info"><div class="label">⏰ ورود به کاستوم</div><div class="value">۲۲:۰۰ تا ۲۲:۱۰</div></div>
       </div>
@@ -449,8 +439,9 @@
   <!-- ===== اطلاعیه رسمی ===== -->
   <section class="announce">
     <div class="a-head">📢 اطلاعیه رسمی تورنومنت 2V2</div>
-    <div class="a-line"><span class="a-emoji">🎮</span><span><strong>زمان برگزاری:</strong> شنبه، فردا</span></div>
+    <div class="a-line"><span class="a-emoji">🎮</span><span><strong>زمان برگزاری:</strong> امروز</span></div>
     <div class="a-line"><span class="a-emoji">⏰</span><span><strong>زمان ورود به روم Rainbow:</strong> ساعت ۲۱:۳۰ (۹ و نیم شب)</span></div>
+    <div class="a-line"><span class="a-emoji">💬</span><span><strong>گروه بله:</strong> <a href="https://ble.ir/join/GXRUPEvXRH" target="_blank" rel="noopener" style="color:#7fc4ff;font-weight:800;text-decoration:underline">ble.ir/join/GXRUPEvXRH</a> — حتماً عضو شوید</span></div>
     <div class="a-line"><span class="a-emoji">⏱️</span><span><strong>زمان ورود به کاستوم:</strong> از ساعت ۲۲:۰۰ تا ۲۲:۱۰ — آماده باشید!</span></div>
     <div class="a-line"><span class="a-emoji">⚠️</span><span><strong>قوانین:</strong></span></div>
     <div class="a-line"><span class="a-emoji">💣</span><span>تنها قانون بازی: <strong>زدن بمب بالا</strong> (شیلد آزاد است).</span></div>
@@ -468,12 +459,14 @@
         <div class="clock" id="timerRoom">--:--:--</div>
         <div class="sub" id="subRoom">در حال محاسبه...</div>
         <div class="progress"><i id="barRoom"></i></div>
+        <button class="btn ring-btn" onclick="ringNow('room')">📞 زنگ بزن!</button>
       </div>
       <div class="timer-card gold" id="cardStart">
         <div class="head">🔥 ورود به کاستوم — ساعت <strong>۲۲:۰۰</strong> تا ۲۲:۱۰</div>
         <div class="clock" id="timerStart">--:--:--</div>
         <div class="sub" id="subStart">در حال محاسبه...</div>
         <div class="progress"><i id="barStart"></i></div>
+        <button class="btn ring-btn gold" onclick="ringNow('start')">📞 زنگ بزن!</button>
       </div>
     </div>
     <div class="status-banner blue" id="bannerRoom">🎧 زمان ورود به روم فرا رسیده! سریع برید داخل!</div>
@@ -525,17 +518,15 @@
       <button class="btn primary" onclick="shareIt()">📤 اشتراک‌گذاری صفحه</button>
       <button class="btn" onclick="copyLink()">🔗 کپی لینک</button>
       <button class="btn" onclick="toggleFullscreen()">⛶ تمام‌صفحه</button>
-      <button class="btn notif" id="notifBtn" onclick="toggleNotifications()">
-        <span class="dot"></span>
-        <span class="bell">🔔</span>
-        <span id="notifBtnLabel">فعال‌سازی یادآوری</span>
-      </button>
+      <button class="btn" id="notifBtn" onclick="enableNotifications()">🔔 فعال‌سازی نوتیفیکیشن</button>
+      <a class="btn primary" href="https://ble.ir/join/GXRUPEvXRH" target="_blank" rel="noopener" style="text-decoration:none">💬 عضویت در گروه بله</a>
     </div>
   </section>
 
   <footer>
     <div>RAINBOW 2V2 TOURNAMENT • <span id="footerYear">۱۴۰۵</span></div>
     <div class="made" style="margin-top:6px;">ساخته شده با <span class="heart">❤</span> برای گیمرها</div>
+    <div class="made" style="margin-top:4px;">سازنده: <strong style="color:#7fc4ff">Dragon_x4</strong> — همراه: <strong style="color:#f7d47b">Mahan</strong></div>
   </footer>
 </div>
 
@@ -563,6 +554,7 @@ document.getElementById('footerYear').textContent =
   new Intl.DateTimeFormat('fa-IR',{year:'numeric'}).format(new Date()).replace(/[^0-9۰-۹]/g,'');
 
 const teams = [
+  "Dragon_x4 + Mahan",
   "Kamyar2k + MahanPS5",
   "Rayan + Razhan",
   "Artinatlas + Mehrad",
@@ -653,121 +645,107 @@ function updateTimers(){
   }
 }
 
-let notifiedPreRoom = false, notifiedRoom = false, notifiedStart = false;
+/* ============================================================
+   نوتیفیکیشن مرورگر (Push/System Notification)
+   ============================================================ */
+function sendNotification(title, body){
+  if(navigator.vibrate){ navigator.vibrate([300,120,300,120,600]); }
+  if(!("Notification" in window)) return;
+  if(Notification.permission === "granted"){
+    try{
+      const n = new Notification(title, {
+        body: body,
+        icon: "https://cdn-icons-png.flaticon.com/512/686/686589.png",
+        tag: title,
+        renotify: true,
+        requireInteraction: true
+      });
+      n.onclick = ()=>{ window.focus(); n.close(); };
+    }catch(e){}
+  }
+}
+
+function updateNotifBtn(){
+  const btn = document.getElementById('notifBtn');
+  if(!btn) return;
+  if(!("Notification" in window)){
+    btn.textContent = '🔕 پشتیبانی نمی‌شود';
+    btn.disabled = true;
+    return;
+  }
+  if(Notification.permission === "granted"){
+    btn.textContent = '✅ نوتیفیکیشن فعال است';
+  } else if(Notification.permission === "denied"){
+    btn.textContent = '🚫 نوتیفیکیشن مسدود شده';
+  } else {
+    btn.textContent = '🔔 فعال‌سازی نوتیفیکیشن';
+  }
+}
+
+function enableNotifications(){
+  if(!("Notification" in window)){
+    showToast('❌ مرورگر شما نوتیفیکیشن را پشتیبانی نمی‌کند');
+    return;
+  }
+  Notification.requestPermission().then(perm=>{
+    updateNotifBtn();
+    if(perm === "granted"){
+      showToast('🔔 نوتیفیکیشن فعال شد!');
+      sendNotification('🌈 Rainbow 2V2 Tournament', 'نوتیفیکیشن‌ها با موفقیت فعال شدند ✅');
+    } else {
+      showToast('⚠️ اجازه نوتیفیکیشن داده نشد');
+    }
+  });
+}
+updateNotifBtn();
+
+let notifiedReminderRoom = false, notifiedRoom = false;
+let notifiedReminderStart = false, notifiedStart = false;
 function checkNotifications(){
   const now = new Date();
   const rT = makeTarget(ROOM_H, ROOM_M);
   const sT = makeTarget(START_H, START_M);
-  const preRoomT = new Date(rT.getTime() - 10*60000);
+  const dRoom = rT - now;
+  const dStart = sT - now;
 
-  if(!notifiedPreRoom && now >= preRoomT && now < rT){
-    notifiedPreRoom = true;
+  /* یادآوری ۵ دقیقه قبل از ورود به روم */
+  if(!notifiedReminderRoom && dRoom <= 5*60*1000 && dRoom > 4*60*1000){
+    notifiedReminderRoom = true;
     playBeep(660);
-    showToast('⏰ ۱۰ دقیقه تا ورود به روم!');
-    sendPush('⏰ ۱۰ دقیقه مونده!', 'آماده باش، تا ۱۰ دقیقه دیگه باید وارد روم بشی 🌈');
-    vibrate([120]);
-    flashTab('⏰ ۱۰ دقیقه مونده!');
+    showToast('⏳ ۵ دقیقه تا ورود به روم Rainbow!');
+    sendNotification('⏳ یادآوری تورنومنت', '۵ دقیقه تا ورود به روم Rainbow — ساعت ۲۱:۳۰');
   }
   if(!notifiedRoom && now >= rT && now < new Date(rT.getTime()+60000)){
     notifiedRoom = true;
-    playBeep(880);
     showToast('🎧 زمان ورود به روم فرا رسید!');
-    sendPush('🎧 زمان ورود به روم فرا رسید!', 'همین الان وارد روم شو، وقتشه! 🌈');
-    vibrate([200,80,200]);
-    flashTab('🎧 وقت ورود به روم!');
+    sendNotification('🎧 زمان ورود به روم!', 'همین الان وارد روم Rainbow شوید.');
+    ringPhone(6);
+  }
+
+  /* یادآوری ۵ دقیقه قبل از ورود به کاستوم */
+  if(!notifiedReminderStart && dStart <= 5*60*1000 && dStart > 4*60*1000){
+    notifiedReminderStart = true;
+    playBeep(660);
+    showToast('⏳ ۵ دقیقه تا ورود به کاستوم!');
+    sendNotification('⏳ یادآوری تورنومنت', '۵ دقیقه تا ورود به کاستوم — ساعت ۲۲:۰۰');
   }
   if(!notifiedStart && now >= sT && now < new Date(sT.getTime()+60000)){
     notifiedStart = true;
-    playBeep(1200);
-    setTimeout(()=>playBeep(1200),200);
     showToast('🔥 مسابقات شروع شد!');
-    sendPush('🔥 مسابقات شروع شد!', 'وارد کاستوم شو و بترکون، موفق باشی 🏆');
-    vibrate([250,100,250,100,250]);
-    flashTab('🔥 مسابقات شروع شد!');
+    sendNotification('🔥 مسابقات شروع شد!', 'همین الان وارد Custom شوید — ۱ دقیقه فرصت دارید.');
+    ringPhone(8);
   }
 }
 
-/* ===== نوتیفیکیشن واقعی مرورگر ===== */
-function updateNotifBtn(){
-  const btn = document.getElementById('notifBtn');
-  const label = document.getElementById('notifBtnLabel');
-  if(!btn || !label) return;
-  btn.classList.remove('active','denied');
-  if(typeof Notification === 'undefined'){
-    label.textContent = 'پشتیبانی نمی‌شود';
-    btn.classList.add('denied');
-    return;
+/* زنگ واقعی گوشی: لرزش مداوم + صدای زنگ تکرارشونده، دقیقاً مثل دکمه «زنگ بزن» */
+function ringPhone(times=6){
+  if(navigator.vibrate){
+    const pattern = [];
+    for(let i=0;i<times;i++){ pattern.push(450,180); }
+    navigator.vibrate(pattern);
   }
-  if(Notification.permission === 'granted'){
-    label.textContent = 'یادآوری فعال است';
-    btn.classList.add('active');
-  } else if(Notification.permission === 'denied'){
-    label.textContent = 'دسترسی مسدود شده';
-    btn.classList.add('denied');
-  } else {
-    label.textContent = 'فعال‌سازی یادآوری';
-  }
+  playRingtone(times);
 }
-
-async function toggleNotifications(){
-  if(typeof Notification === 'undefined'){
-    showToast('❌ مرورگرت نوتیفیکیشن رو ساپورت نمی‌کنه');
-    return;
-  }
-  if(Notification.permission === 'granted'){
-    showToast('🔔 یادآوری از قبل فعاله!');
-    sendPush('🌈 Rainbow 2V2', 'یادآوری فعاله، سر وقت خبرت می‌کنیم ✅');
-    vibrate([80]);
-    return;
-  }
-  if(Notification.permission === 'denied'){
-    showToast('🔕 دسترسی مسدود شده — از تنظیمات مرورگر بازش کن');
-    return;
-  }
-  const perm = await Notification.requestPermission();
-  updateNotifBtn();
-  if(perm === 'granted'){
-    showToast('✅ یادآوری با موفقیت فعال شد!');
-    sendPush('🌈 Rainbow 2V2 فعال شد!', 'از این به بعد سر وقت روم و شروع مسابقه بهت خبر می‌دیم 🏆');
-    vibrate([120,60,120]);
-  } else {
-    showToast('❌ اجازه داده نشد');
-  }
-}
-
-function sendPush(title, body){
-  if(typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-  try{
-    const n = new Notification(title, {
-      body,
-      tag: 'rainbow-2v2',
-      renotify: true,
-      requireInteraction: false
-    });
-    n.onclick = ()=>{ window.focus(); n.close(); };
-  }catch(e){}
-}
-
-function vibrate(pattern){
-  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
-}
-
-let flashTimer;
-function flashTab(msg){
-  if(!document.hidden) return;
-  const original = document.title;
-  clearInterval(flashTimer);
-  let on = false, ticks = 0;
-  flashTimer = setInterval(()=>{
-    document.title = on ? original : `🔴 ${msg}`;
-    on = !on;
-    ticks++;
-    if(ticks > 12){ clearInterval(flashTimer); document.title = original; }
-  }, 700);
-}
-document.addEventListener('visibilitychange', ()=>{
-  if(!document.hidden){ clearInterval(flashTimer); }
-});
 
 function playBeep(freq){
   try{
@@ -781,6 +759,27 @@ function playBeep(freq){
     o.start();
     setTimeout(()=>{o.stop(); ctx.close();}, 250);
   }catch(e){}
+}
+
+function playRingtone(times=4){
+  let i = 0;
+  const tick = ()=>{
+    if(i >= times) return;
+    playBeep(1000);
+    setTimeout(()=>playBeep(1400), 180);
+    i++;
+    setTimeout(tick, 500);
+  };
+  tick();
+}
+
+function ringNow(which){
+  ringPhone(4);
+  const label = which === 'room'
+    ? '🎧 یادآوری: الان وارد روم Rainbow شوید!'
+    : '🔥 یادآوری: الان وارد کاستوم شوید!';
+  showToast(label);
+  sendNotification('📞 Rainbow 2V2 — زنگ یادآوری', label);
 }
 
 let toastTimer;
@@ -867,7 +866,6 @@ function toggleFullscreen(){
 
 updateTimers();
 checkNotifications();
-updateNotifBtn();
 setInterval(()=>{ updateTimers(); checkNotifications(); }, 1000);
 </script>
 
