@@ -365,9 +365,10 @@
     font-weight:800;font-size:13px;
     box-shadow:0 10px 40px #20d67a33;
     transition:.4s cubic-bezier(.2,.9,.3,1);
-    z-index:100;opacity:0;pointer-events:none;
+    z-index:10001;opacity:0;pointer-events:none;
   }
   .toast.show{transform:translate(50%,0);opacity:1}
+  .toast.error{border-color:var(--red);color:#ff8f97;box-shadow:0 10px 40px #e9344533}
   .lightbox{
     position:fixed;inset:0;background:#000e;z-index:200;
     display:flex;align-items:center;justify-content:center;
@@ -676,6 +677,7 @@
           <label class="btn">👥 عکس تیم بندی <input id="teamBracketImageInput" type="file" accept="image/*" onchange="handleImageUpload('teamBracket',this.files)"></label>
           <label class="btn">🏆 عکس جدول بندی <input id="standingsImageInput" type="file" accept="image/*" onchange="handleImageUpload('standings',this.files)"></label>
         </div>
+        <div id="uploadOnlyCreatorNote" class="locked-note" style="display:none">🔒 آپلود عکس فقط توسط سازنده (dragon) امکان‌پذیر است.</div>
         <div id="adminMedia"></div>
       </div>
 
@@ -726,7 +728,7 @@
   <footer>
     <div>RAINBOW 2V2 TOURNAMENT • <span id="footerYear">۱۴۰۵</span></div>
     <div class="made" style="margin-top:6px;">ساخته شده با <span class="heart">❤</span> برای گیمرها</div>
-    <div class="made" style="margin-top:4px;">سازنده: <strong style="color:#7fc4ff">Dragon_x4</strong> — همراه: <strong style="color:#f7d47b">Mahan</strong></div>
+    <div class="made" style="margin-top:4px;">سازنده: <strong style="color:#7fc4ff">Dragon_x4</strong> — همراه: <strong style="color:#f7d47b">Mahan Hamta</strong></div>
   </footer>
 </div>
 
@@ -773,6 +775,8 @@ const ROOM_H = 21, ROOM_M = 30;
 const START_H = 22, START_M = 0;
 const BALE_LINK = "https://ble.ir/join/GXRUPEvXRH";
 
+function fbSet(key,val){ /* آماده برای اتصال به سرور در آینده — فعلاً فقط ذخیره محلی */ }
+function fbGet(key){ return null; }
 const teamsEl = document.getElementById("teams");
 const scoreboardEl = document.getElementById("scoreboard");
 const audioState = { ctx:null, unlocked:false };
@@ -1103,8 +1107,10 @@ document.addEventListener("pointerdown",requestWakeLock,{once:true,passive:true}
 
 /* ===== UI ===== */
 function showToast(msg){
-  const t=document.getElementById("toast"); t.textContent=msg;t.classList.add("show");
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+  const t=document.getElementById("toast"); t.textContent=msg;
+  t.classList.toggle("error",msg.indexOf("❌")===0);
+  t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
 }
 function openLightbox(el){
   const img=el.querySelector("img");document.getElementById("lightboxImg").src=img.src;document.getElementById("lightbox").classList.add("show");
@@ -1268,6 +1274,7 @@ function ensureUploadProgressEl(){
   return el;
 }
 async function handleImageUpload(type,files){
+  if(!isPrimaryAdmin()){showToast("🔒 فقط سازنده می‌تواند عکس آپلود کند");return;}
   if(!files || !files.length){return;}
   const box=ensureUploadProgressEl();
   box.style.display="block";
@@ -1287,11 +1294,13 @@ async function handleImageUpload(type,files){
   finally{ setTimeout(()=>{box.style.display="none";box.innerHTML="";},700); }
 }
 function deleteMedia(type,id){
+  if(!isAdmin()){showToast("🔒 فقط مدیر می‌تواند عکس را حذف کند");return;}
   const m=loadMedia();
   if(type==="tournament") m.tournament=m.tournament.filter(x=>x.id!==id); else if(m[type]?.id===id)m[type]=null;
   saveMedia(m); renderMedia(); showToast("🗑️ عکس حذف شد");
 }
 function deleteSelectedMedia(){
+  if(!isAdmin()){showToast("🔒 فقط مدیر می‌تواند عکس را حذف کند");return;}
   const boxes=[...document.querySelectorAll(".media-select:checked")];
   if(!boxes.length){showToast("⚠️ هیچ عکسی انتخاب نشده است");return;}
   const m=loadMedia();
@@ -1303,7 +1312,10 @@ function deleteSelectedMedia(){
 }
 function mediaCard(item,type){
   if(!item)return `<div class="image-placeholder">📷 هنوز عکسی آپلود نشده — به زودی (به زودی)</div>`;
-  return `<div class="media-card"><label class="media-select-wrap"><input type="checkbox" class="media-select" data-type="${type}" data-id="${item.id}"></label><img src="${item.src}" alt="${escapeHtml(item.name||"تصویر")}" onclick="openLightboxSrc('${item.src}')"><button class="mini-btn danger media-delete" onclick="deleteMedia('${type}','${item.id}')">🗑️ حذف</button><div class="media-caption">${escapeHtml(item.name||"تصویر")}</div></div>`;
+  const admin=isAdmin();
+  const selectBox=admin?`<label class="media-select-wrap"><input type="checkbox" class="media-select" data-type="${type}" data-id="${item.id}"></label>`:"";
+  const deleteBtn=admin?`<button class="mini-btn danger media-delete" onclick="deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
+  return `<div class="media-card">${selectBox}<img src="${item.src}" alt="${escapeHtml(item.name||"تصویر")}" onclick="openLightboxSrc('${item.src}')">${deleteBtn}<div class="media-caption">${escapeHtml(item.name||"تصویر")}</div></div>`;
 }
 function renderMedia(){
   const m=loadMedia();
@@ -1312,6 +1324,10 @@ function renderMedia(){
   if(tb)tb.innerHTML=mediaCard(m.teamBracket,"teamBracket");
   if(st)st.innerHTML=mediaCard(m.standings,"standings");
   if(am)am.innerHTML=`<div class="media-grid">${m.tournament.map(x=>mediaCard(x,"tournament")).join("")}${mediaCard(m.teamBracket,"teamBracket")}${mediaCard(m.standings,"standings")}</div>`;
+  const uploadRow=document.querySelector(".upload-row");
+  if(uploadRow)uploadRow.style.display=isPrimaryAdmin()?"flex":"none";
+  const uploadNote=document.getElementById("uploadOnlyCreatorNote");
+  if(uploadNote)uploadNote.style.display=(isAdmin()&&!isPrimaryAdmin())?"block":"none";
 }
 function loadWinners(){try{const x=JSON.parse(localStorage.getItem(WINNERS_KEY)||"[]");return Array.isArray(x)?x:[];}catch(e){return [];}}
 function saveWinners(x){localStorage.setItem(WINNERS_KEY,JSON.stringify(x));}
