@@ -530,6 +530,13 @@
   .offline-badge{display:inline-flex;align-items:center;gap:5px;color:#a0a7b2;font-size:12px}
   @media(max-width:650px){.admin-team{grid-template-columns:1fr auto auto}.admin-team .danger{grid-column:1/-1}.account-row{grid-template-columns:1fr!important}.account-row .account-actions{grid-column:1/-1}.admin-panel > .admin-title{position:relative}}
 
+
+  /* v3 fixes: readable names and larger mobile fields */
+  .admin-team input{min-width:0;width:100%;min-height:46px;padding:12px 14px!important;font-size:15px!important;white-space:normal;overflow:visible;text-overflow:clip}
+  .teamname,.team-name-public,.score-row .name{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;word-break:break-word;line-height:1.55}
+  .team,.info-team{min-width:0}.info-team{flex:1}
+  .player-chip strong{overflow-wrap:anywhere;word-break:break-word}
+  @media(max-width:520px){.score-row{grid-template-columns:minmax(0,1fr) 48px 48px auto;font-size:12px}.score-row .name{font-size:13px}.score-edit-btn{padding:7px 8px}.admin-team{grid-template-columns:minmax(0,1fr) auto auto!important}.admin-team .danger{grid-column:auto!important}}
 </style>
 </head>
 <body>
@@ -875,6 +882,9 @@
   <div class="lightbox-hint">🔍 اسکرول یا دابل‌کلیک برای زوم — بعد از زوم، عکس را بکشید</div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
 <script>
 /* ============================================================
    Rainbow 2V2 Tournament — v2.0
@@ -892,16 +902,59 @@ const ROOM_H = 21, ROOM_M = 30;
 const START_H = 22, START_M = 0;
 const BALE_LINK = "https://ble.ir/join/GXRUPEvXRH";
 
-/* ===== Cloud Sync — ذخیره تنظیمات سازنده برای همه‌ی بازدیدکننده‌ها ===== */
-const CLOUD_READY = (function(){ try{ return !!(window.storage && typeof window.storage.get==="function" && typeof window.storage.set==="function"); }catch(e){ return false; } })();
-function fbSet(name,val){
-  if(!CLOUD_READY) return;
-  try{ window.storage.set(name, JSON.stringify(val), true).catch(()=>{}); }catch(e){}
+/* ===== Firebase Cloud Sync =====
+   1) در Firebase Console یک Web App بسازید.
+   2) مقدار firebaseConfig را با Config پروژه خودتان جایگزین کنید.
+   3) Firestore را فعال کنید. برای عکس‌ها از خود Firestore استفاده می‌شود و Firebase Storage لازم نیست.
+   4) Anonymous Authentication را فعال کنید.
+*/
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDumsQiQ2h6F5Lxg1oFgduPcKvMHQL3bqA",
+  authDomain: "rain-bow-e9360.firebaseapp.com",
+  projectId: "rain-bow-e9360",
+  storageBucket: "rain-bow-e9360.firebasestorage.app",
+  messagingSenderId: "198392791020",
+  appId: "1:198392791020:web:bad37b209a45d2ed358ac9",
+  measurementId: "G-WYJ4G59K3V"
+};
+const FIREBASE_CONFIGURED = !Object.values(FIREBASE_CONFIG).some(v => String(v).includes("YOUR_"));
+let firebaseApp=null, firebaseDb=null, firebaseUser=null;
+let cloudLastError="";
+const CLOUD_NAMESPACE="rainbow_firebase_v1";
+const FIREBASE_DOC_COLLECTION="rainbowData";
+function cloudKey(name){return String(name).replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,120);}
+function initFirebase(){
+  if(!FIREBASE_CONFIGURED || !window.firebase) return false;
+  try{
+    firebaseApp=firebase.apps.length?firebase.app():firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseDb=firebaseApp.firestore();
+    firebaseApp.auth().onAuthStateChanged(u=>{firebaseUser=u||null;});
+    firebaseApp.auth().signInAnonymously().catch(e=>{cloudLastError=String(e?.message||e);});
+    return true;
+  }catch(e){cloudLastError=String(e?.message||e);return false;}
 }
-async function fbGetRaw(name){
-  if(!CLOUD_READY) return null;
-  try{ const r=await window.storage.get(name,true); return (r && typeof r.value==="string") ? r.value : null; }catch(e){ return null; }
+const CLOUD_READY=initFirebase();
+async function waitFirebaseAuth(){
+  if(!CLOUD_READY) return false;
+  if(firebaseUser) return true;
+  return new Promise(resolve=>{
+    const unsub=firebaseApp.auth().onAuthStateChanged(u=>{unsub();firebaseUser=u||null;resolve(!!u);});
+    setTimeout(()=>{try{unsub();}catch(e){} resolve(!!firebaseUser);},8000);
+  });
 }
+async function fbSet(name,val){
+  if(!CLOUD_READY || !(await waitFirebaseAuth())) return false;
+  try{await firebaseDb.collection(FIREBASE_DOC_COLLECTION).doc(cloudKey(name)).set({value:val,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});return true;}
+  catch(e){cloudLastError=String(e?.message||e);return false;}
+}
+async function fbGet(name){
+  if(!CLOUD_READY || !(await waitFirebaseAuth())) return null;
+  try{const d=await firebaseDb.collection(FIREBASE_DOC_COLLECTION).doc(cloudKey(name)).get();return d.exists?d.data()?.value:null;}
+  catch(e){cloudLastError=String(e?.message||e);return null;}
+}
+async function fbGetRaw(name){const v=await fbGet(name);return v==null?null:JSON.stringify(v);}
+function broadcastChange(name){try{if(window.BroadcastChannel){const bc=new BroadcastChannel("rainbow-live-firebase");bc.postMessage({name,at:Date.now()});bc.close();}}catch(e){}}
+function sharedSet(name,val){broadcastChange(name);return fbSet(name,val);}
 const teamsEl = document.getElementById("teams");
 const scoreboardEl = document.getElementById("scoreboard");
 const audioState = { ctx:null, unlocked:false };
@@ -954,7 +1007,7 @@ function loadTeams(){
 function saveTeams(list){
   const clean=list.map(s=>String(s).trim()).filter(Boolean).slice(0,16);
   localStorage.setItem(TEAMS_KEY,JSON.stringify(clean));
-  fbSet("teams",clean);
+  sharedSet("teams",clean);
   renderTeams(); renderAdminTeams(); renderScoreboard();
 }
 function teamPlayers(team){ return team.split("+").map(s=>s.trim()).filter(Boolean); }
@@ -1035,7 +1088,7 @@ function moveTeam(i,dir){
 }
 function resetTeams(){
   if(!creatorOnly())return;
-  localStorage.removeItem(TEAMS_KEY); fbSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams(); showToast("↩️ تیم‌ها بازنشانی شدند");
+  localStorage.removeItem(TEAMS_KEY); sharedSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams(); showToast("↩️ تیم‌ها بازنشانی شدند");
 }
 
 /* ===== Profiles ===== */
@@ -1073,7 +1126,7 @@ function editScore(i){
   const loss=prompt(`تعداد باخت «${team}»:`,s.loss??0);
   if(loss===null)return;
   scores[team]={win:Math.max(0,parseInt(win)||0),loss:Math.max(0,parseInt(loss)||0)};
-  localStorage.setItem(SCORES_KEY,JSON.stringify(scores)); fbSet("scores",scores); renderScoreboard();
+  localStorage.setItem(SCORES_KEY,JSON.stringify(scores)); sharedSet("scores",scores); renderScoreboard();
 }
 function updateProgress(){
   const total=loadTeams().length;
@@ -1251,7 +1304,7 @@ function showToast(msg){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
 }
 function loadHiddenLegacyMedia(){try{return JSON.parse(localStorage.getItem("rainbow_hidden_legacy_media_v1")||"[]")}catch(e){return []}}
-function hideLegacyMedia(id){if(!isPrimaryAdmin())return;const x=loadHiddenLegacyMedia();if(!x.includes(id))x.push(id);localStorage.setItem("rainbow_hidden_legacy_media_v1",JSON.stringify(x));fbSet("hiddenLegacyMedia",x);document.querySelector(`[data-legacy-media="${id}"]`)?.remove();showToast("🗑️ عکس قبلی حذف شد")}
+function hideLegacyMedia(id){if(!isPrimaryAdmin())return;const x=loadHiddenLegacyMedia();if(!x.includes(id))x.push(id);localStorage.setItem("rainbow_hidden_legacy_media_v1",JSON.stringify(x));sharedSet("hiddenLegacyMedia",x);document.querySelector(`[data-legacy-media="${id}"]`)?.remove();showToast("🗑️ عکس قبلی حذف شد")}
 function restoreLegacyMedia(){const hidden=loadHiddenLegacyMedia();document.querySelectorAll("[data-legacy-media]").forEach(el=>{if(hidden.includes(el.dataset.legacyMedia))el.remove()})}
 function openLightbox(el){
   const img=el.querySelector("img");openLightboxSrc(img.src);
@@ -1390,7 +1443,7 @@ function loadAccounts(){
   }catch(e){}
   return [{id:"creator",username:ADMIN_USER,password:ADMIN_PASS,role:"admin",name:"سازنده",active:true},{id:"admin2",username:ADMIN2_USER,password:ADMIN2_PASS,role:"admin2",name:"ادمین",active:admin2Active()}];
 }
-function saveAccounts(a){localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));fbSet("accounts",a);}
+function saveAccounts(a){localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));sharedSet("accounts",a);}
 function currentAccount(){const role=getRole();return loadAccounts().find(a=>a.role===role&&a.active!==false)||null;}
 function isAdmin(){ return getRole()==="admin" || getRole()==="admin2"; }
 function isPrimaryAdmin(){ return getRole()==="admin"; }
@@ -1405,7 +1458,7 @@ function loadConfig(){
 }
 function saveConfig(c){
   localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
-  fbSet("config",c);
+  sharedSet("config",c);
 }
 let tournamentConfig=loadConfig();
 let loginMode="guest";
@@ -1474,7 +1527,42 @@ function saveTournamentConfig(){
 
 /* ===== Uploaded media, winners & presence ===== */
 function loadMedia(){try{const x=JSON.parse(localStorage.getItem(MEDIA_KEY)||"{}");const norm=k=>Array.isArray(x[k])?x[k]:(x[k]?[x[k]]:[]);return {tournament:norm("tournament"),teamBracket:norm("teamBracket"),standings:norm("standings")};}catch(e){return {tournament:[],teamBracket:[],standings:[]};}}
-function saveMedia(m){localStorage.setItem(MEDIA_KEY,JSON.stringify(m));fbSet("media",m);}
+async function saveMediaToCloud(m){
+  if(!CLOUD_READY || !(await waitFirebaseAuth())) return false;
+  try{
+    const col=firebaseDb.collection("rainbowMedia");
+    const existing=await col.get();
+    const batch=firebaseDb.batch();
+    existing.forEach(doc=>batch.delete(doc.ref));
+    const items=[];
+    for(const type of ["tournament","teamBracket","standings"]){
+      for(const item of (m[type]||[])){
+        if(!item || !item.id || typeof item.src!=="string") continue;
+        const id=cloudKey(type+"_"+item.id).slice(0,120);
+        const data={type,id:String(item.id),src:item.src,name:String(item.name||"تصویر"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        batch.set(col.doc(id),data);
+        items.push(data);
+      }
+    }
+    await batch.commit();
+    return true;
+  }catch(e){cloudLastError=String(e?.message||e);return false;}
+}
+async function getMediaFromCloud(){
+  if(!CLOUD_READY || !(await waitFirebaseAuth())) return null;
+  try{
+    const out={tournament:[],teamBracket:[],standings:[]};
+    const snap=await firebaseDb.collection("rainbowMedia").get();
+    snap.forEach(doc=>{const x=doc.data()||{};if(out[x.type] && x.src)out[x.type].push({id:String(x.id||doc.id),src:String(x.src),name:String(x.name||"تصویر")});});
+    Object.keys(out).forEach(k=>out[k].sort((a,b)=>String(a.id).localeCompare(String(b.id))));
+    return out;
+  }catch(e){cloudLastError=String(e?.message||e);return null;}
+}
+async function saveMedia(m){
+  localStorage.setItem(MEDIA_KEY,JSON.stringify(m));
+  try{const ok=await saveMediaToCloud(m); if(ok){const remote=await getMediaFromCloud();if(remote)localStorage.setItem(MEDIA_KEY,JSON.stringify(remote));} return ok;}catch(e){cloudLastError=String(e?.message||e);return false;}
+}
+async function hydrateCloudMedia(m){return m;}
 function readImage(file,onProgress){
   return new Promise((resolve,reject)=>{
     if(!file||!file.type.startsWith("image/")) return reject(new Error("image"));
@@ -1529,14 +1617,16 @@ async function handleImageUpload(type,files){
       const file=arr[i];
       const label=(p)=>{box.innerHTML=`<div class="upload-progress-label">📤 پردازش ${escapeHtml(file.name)} (${i+1}/${arr.length})</div><div class="upload-progress-track"><div class="upload-progress-fill" style="width:${p}%"></div></div>`};
       const raw=await readImage(file,label);
-      const data=await compressImage(raw,1600,0.85,label);
+      let data=await compressImage(raw,1000,0.72,label);
+      if(data.length>700000) data=await compressImage(raw,800,0.60,label);
+      if(data.length>900000) throw new Error("image-too-large");
       m[type].push({id:Date.now()+"-"+Math.random(),src:data,name:file.name});
     }
-    saveMedia(m);renderMedia();showToast("✅ عکس‌ها با کیفیت بالا ذخیره شدند");
+    const cloudOk=await saveMedia(m); renderMedia(); showToast(cloudOk||!CLOUD_READY?"✅ عکس‌ها ذخیره شدند":"⚠️ عکس روی این دستگاه ذخیره شد؛ همگام‌سازی ابری ناموفق بود");
   }catch(e){showToast("❌ آپلود عکس ناموفق بود");}
   finally{setTimeout(()=>{box.style.display="none";box.innerHTML=""},500);}
 }
-function deleteMedia(type,id){if(!creatorOnly())return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
+async function deleteMedia(type,id){if(!creatorOnly())return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;await saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
 function mediaCard(item,type){
   if(!item)return `<div class="image-placeholder compact-placeholder">📷 به زودی</div>`;
   const deleteBtn=isPrimaryAdmin()?`<button class="mini-btn danger media-delete" onclick="deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
@@ -1551,7 +1641,7 @@ function renderMedia(){
   const note=document.getElementById("uploadOnlyCreatorNote");if(note)note.style.display=isAdmin()&&!isPrimaryAdmin()?"block":"none";
 }
 function loadWinners(){try{const x=JSON.parse(localStorage.getItem(WINNERS_KEY)||"[]");return Array.isArray(x)?x:[];}catch(e){return [];}}
-function saveWinners(x){localStorage.setItem(WINNERS_KEY,JSON.stringify(x));fbSet("winners",x);}
+function saveWinners(x){localStorage.setItem(WINNERS_KEY,JSON.stringify(x));sharedSet("winners",x);}
 function addWinner(){
   if(!creatorOnly())return;
   const name=document.getElementById("winnerNameInput").value.trim();
@@ -1597,7 +1687,7 @@ function loadRules(){
   try{const x=JSON.parse(localStorage.getItem(RULES_KEY)||"null");return Array.isArray(x)&&x.length?x:DEFAULT_RULES.slice();}
   catch(e){return DEFAULT_RULES.slice();}
 }
-function saveRules(x){localStorage.setItem(RULES_KEY,JSON.stringify(x));fbSet("rules",x);}
+function saveRules(x){localStorage.setItem(RULES_KEY,JSON.stringify(x));sharedSet("rules",x);}
 function addRule(){
   if(!creatorOnly())return;
   const input=document.getElementById("newRuleInput");
@@ -1653,17 +1743,17 @@ function renderUsers(){
 function deleteAdmin2(){
   if(!isPrimaryAdmin()){showToast("🔒 فقط سازنده می‌تواند ادمین را حذف کند");return;}
   if(!confirm("اکانت artin حذف شود؟"))return;
-  localStorage.setItem(ADMIN2_ACTIVE_KEY,"0");fbSet("admin2Active","0");showToast("🗑️ اکانت ادمین حذف شد");renderUsers();
+  localStorage.setItem(ADMIN2_ACTIVE_KEY,"0");sharedSet("admin2Active","0");showToast("🗑️ اکانت ادمین حذف شد");renderUsers();
 }
 function reviveAdmin2(){
-  if(!isPrimaryAdmin())return;localStorage.setItem(ADMIN2_ACTIVE_KEY,"1");fbSet("admin2Active","1");renderUsers();
+  if(!isPrimaryAdmin())return;localStorage.setItem(ADMIN2_ACTIVE_KEY,"1");sharedSet("admin2Active","1");renderUsers();
 }
 setInterval(updatePresence,10000);
 setInterval(renderUsers,5000);
 
 /* ===== Player accounts / private progress ===== */
 function loadPlayerAccounts(){try{const x=JSON.parse(localStorage.getItem(PLAYER_ACCOUNTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
-function savePlayerAccounts(x){localStorage.setItem(PLAYER_ACCOUNTS_KEY,JSON.stringify(x));fbSet("playerAccounts",x);}
+function savePlayerAccounts(x){localStorage.setItem(PLAYER_ACCOUNTS_KEY,JSON.stringify(x));sharedSet("playerAccounts",x);}
 function currentPlayer(){const id=sessionStorage.getItem(PLAYER_SESSION_KEY);return loadPlayerAccounts().find(x=>x.id===id&&x.active!==false)||null}
 function addPlayerAccount(){if(!creatorOnly())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();showToast("✅ اکانت بازیکن ساخته شد")}
 function updatePlayer(id,key,value){if(!creatorOnly())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;a[key]=String(value);savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard()}
@@ -1672,15 +1762,15 @@ function renderPlayerDashboard(){const d=document.getElementById("playerDashboar
 
 /* ===== Notice / News / Accounts / Custom boxes ===== */
 function loadNotice(){return localStorage.getItem(NOTICE_KEY)||""}
-function saveTodayNotice(){if(!creatorOnly())return;const v=(document.getElementById("todayNoticeInput")?.value||"").trim();localStorage.setItem(NOTICE_KEY,v);fbSet("notice",v);renderDynamicContent();showToast("✅ اطلاع رسانی ذخیره شد")}
+function saveTodayNotice(){if(!creatorOnly())return;const v=(document.getElementById("todayNoticeInput")?.value||"").trim();localStorage.setItem(NOTICE_KEY,v);sharedSet("notice",v);renderDynamicContent();showToast("✅ اطلاع رسانی ذخیره شد")}
 function loadNews(){try{const x=JSON.parse(localStorage.getItem(NEWS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
-function saveNews(x){localStorage.setItem(NEWS_KEY,JSON.stringify(x));fbSet("news",x);}
+function saveNews(x){localStorage.setItem(NEWS_KEY,JSON.stringify(x));sharedSet("news",x);}
 function addNews(){if(!creatorOnly())return;const title=(document.getElementById("newsTitleInput").value||"").trim(),body=(document.getElementById("newsBodyInput").value||"").trim();if(!title&&!body){showToast("⚠️ عنوان یا متن خبر را وارد کنید");return}const x=loadNews();x.unshift({id:Date.now()+"",title,body,date:new Date().toLocaleDateString("fa-IR")});saveNews(x);document.getElementById("newsTitleInput").value="";document.getElementById("newsBodyInput").value="";renderDynamicContent();showToast("📰 خبر اضافه شد")}
 function deleteNews(id){if(!creatorOnly())return;saveNews(loadNews().filter(x=>x.id!==id));renderDynamicContent()}
 function openNewsPage(){const page=document.getElementById("newsPage");if(page){page.classList.add("show");renderDynamicContent()}}
 function closeNewsPage(){document.getElementById("newsPage")?.classList.remove("show")}
 function loadExtraBoxes(){try{const x=JSON.parse(localStorage.getItem(EXTRA_BOXES_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
-function saveExtraBoxes(x){localStorage.setItem(EXTRA_BOXES_KEY,JSON.stringify(x));fbSet("extraBoxes",x);}
+function saveExtraBoxes(x){localStorage.setItem(EXTRA_BOXES_KEY,JSON.stringify(x));sharedSet("extraBoxes",x);}
 function addExtraBox(){if(!creatorOnly())return;const t=(document.getElementById("extraBoxTitleInput").value||"").trim();if(!t){showToast("⚠️ نام باکس را وارد کنید");return}const x=loadExtraBoxes();x.push({id:Date.now()+"",title:t,body:""});saveExtraBoxes(x);document.getElementById("extraBoxTitleInput").value="";renderDynamicContent();showToast("➕ باکس اضافه شد")}
 function updateExtraBox(id,v){if(!creatorOnly())return;const x=loadExtraBoxes(),b=x.find(a=>a.id===id);if(!b)return;b.body=v;saveExtraBoxes(x);renderDynamicContent()}
 function deleteExtraBox(id){if(!creatorOnly())return;saveExtraBoxes(loadExtraBoxes().filter(x=>x.id!==id));renderDynamicContent()}
@@ -1699,7 +1789,7 @@ function accountActionHtml(a){if(a.role==="admin"){return `<button class="mini-b
 function changeOwnCredentials(){if(!isPrimaryAdmin())return;const a=loadAccounts().find(x=>x.role==="admin");if(!a)return;const u=prompt("نام کاربری جدید:",a.username);if(u===null)return;const p=prompt("رمز عبور جدید:",a.password);if(p===null)return;if(!u.trim()||!p){showToast("⚠️ نام کاربری و رمز عبور نمی‌توانند خالی باشند");return}if(loadAccounts().some(x=>x.id!==a.id&&x.username===u.trim())){showToast("❌ این نام کاربری قبلاً وجود دارد");return}a.username=u.trim();a.password=p;saveAccounts(loadAccounts().map(x=>x.id===a.id?a:x));localStorage.setItem(REMEMBER_KEY,JSON.stringify({username:a.username,password:a.password}));renderDynamicContent();showToast("✅ اطلاعات سازنده تغییر کرد")}
 function addAccount(){if(!creatorOnly())return;const u=document.getElementById("newAccountUser").value.trim(),p=document.getElementById("newAccountPass").value;if(!u||!p){showToast("⚠️ نام کاربری و رمز عبور را وارد کنید");return}const x=loadAccounts();if(x.some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:Date.now()+"",username:u,password:p,role:"admin2",name:"اکانت جدید",active:true});saveAccounts(x);document.getElementById("newAccountUser").value="";document.getElementById("newAccountPass").value="";renderDynamicContent();showToast("✅ اکانت ساخته شد")}
 function updateAccount(id,key,v){if(!creatorOnly())return;const x=loadAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(key==="username"&&!String(v).trim())return;a[key]=String(v).trim();saveAccounts(x);if(a.role===getRole()&&key==="password"){localStorage.setItem(REMEMBER_KEY,JSON.stringify({username:a.username,password:a.password}))}showToast("✅ اکانت به‌روزرسانی شد")}
-function deleteAccount(id){if(!creatorOnly())return;const x=loadAccounts(),a=x.find(q=>q.id===id);if(!a||a.role==="admin"){showToast("⛔ شما مجوز این کار را ندارید");return}saveAccounts(x.filter(q=>q.id!==id));if(a.role==="admin2"){localStorage.setItem(ADMIN2_ACTIVE_KEY,"0");fbSet("admin2Active","0");}renderDynamicContent();renderUsers();showToast("🗑️ اکانت حذف شد")}
+function deleteAccount(id){if(!creatorOnly())return;const x=loadAccounts(),a=x.find(q=>q.id===id);if(!a||a.role==="admin"){showToast("⛔ شما مجوز این کار را ندارید");return}saveAccounts(x.filter(q=>q.id!==id));if(a.role==="admin2"){localStorage.setItem(ADMIN2_ACTIVE_KEY,"0");sharedSet("admin2Active","0");}renderDynamicContent();renderUsers();showToast("🗑️ اکانت حذف شد")}
 function renderUsers(){const el=document.getElementById("adminUsers");if(!el)return;let users=[];try{users=JSON.parse(localStorage.getItem(PRESENCE_KEY)||"[]")}catch(e){}const now=Date.now();users=users.filter(x=>now-x.lastSeen<120000);el.innerHTML=users.length?users.map(u=>`<div class="user-row"><div><span class="online-dot ${now-u.lastSeen<30000?"on":""}"></span><strong>${escapeHtml(u.name)}</strong></div><div>${u.role==="admin"?"سازنده":u.role==="admin2"?"ادمین":u.role==="player"?"بازیکن":"میهمان"}</div><div>${now-u.lastSeen<30000?"آنلاین":"آفلاین"}</div></div>`).join(""):"<div class=\"muted\">کاربری ثبت نشده است.</div>"}
 
 /* ===== Cloud Sync orchestration (باید بعد از تعریف تمام کلیدها باشد) ===== */
@@ -1711,17 +1801,13 @@ const CLOUD_KEY_MAP={
 };
 const CLOUD_RAW_STRING_KEYS=new Set(["notice","admin2Active"]);
 async function cloudPullAll(){
-  if(!CLOUD_READY) return false;
-  let changed=false;
+  if(!CLOUD_READY) return false; let changed=false;
   for(const name in CLOUD_KEY_MAP){
-    const lsKey=CLOUD_KEY_MAP[name];
-    const raw=await fbGetRaw(name);
-    if(raw==null) continue;
-    let toStore=raw;
-    if(CLOUD_RAW_STRING_KEYS.has(name)){ try{toStore=JSON.parse(raw);}catch(e){continue;} }
-    if(localStorage.getItem(lsKey)!==toStore){ localStorage.setItem(lsKey,toStore); changed=true; }
-  }
-  return changed;
+    const lsKey=CLOUD_KEY_MAP[name],raw=await fbGetRaw(name); if(raw==null) continue;
+    if(name==="media"){const remote=await getMediaFromCloud();if(remote){const next=JSON.stringify(remote);if(localStorage.getItem(lsKey)!==next){localStorage.setItem(lsKey,next);changed=true;}}continue;}
+    let serialized=raw;if(CLOUD_RAW_STRING_KEYS.has(name)){try{serialized=String(JSON.parse(raw));}catch(e){continue;}}
+    if(localStorage.getItem(lsKey)!==serialized){localStorage.setItem(lsKey,serialized);changed=true;}
+  } return changed;
 }
 function refreshAllFromStorage(){
   tournamentConfig=loadConfig();
@@ -1731,11 +1817,37 @@ function refreshAllFromStorage(){
 }
 function setCloudBadge(text){const b=document.getElementById("cloudSyncBadge"); if(b) b.textContent=text;}
 function startCloudSync(){
-  if(!CLOUD_READY){ setCloudBadge("🔌 همگام‌سازی بین دستگاه‌ها غیرفعال — این صفحه باید از طریق Claude باز شود"); return; }
-  setCloudBadge("☁️ در حال دریافت آخرین اطلاعات...");
-  cloudPullAll().then(()=>{ refreshAllFromStorage(); setCloudBadge("☁️ همگام‌سازی فعال — تغییرات سازنده برای همه ذخیره می‌شود"); });
-  setInterval(()=>{ cloudPullAll().then(changed=>{ if(changed) refreshAllFromStorage(); }); },7000);
+  try{if(window.BroadcastChannel){const bc=new BroadcastChannel("rainbow-live-firebase");bc.onmessage=()=>refreshAllFromStorage();}}catch(e){}
+  if(!CLOUD_READY){setCloudBadge("⚠️ Firebase تنظیم نشده — فایل را با firebaseConfig پروژه خودتان متصل کنید");return;}
+  setCloudBadge("☁️ اتصال Firebase در حال راه‌اندازی...");
+  waitFirebaseAuth().then(async ok=>{
+    if(!ok){setCloudBadge("❌ ورود Firebase انجام نشد");return;}
+    await cloudPullAll(); refreshAllFromStorage(); setCloudBadge("☁️ Firebase فعال — همگام‌سازی زنده برای همه");
+    const names=Object.keys(CLOUD_KEY_MAP);
+    names.forEach(name=>{
+      try{
+        if(name==="media"){
+          firebaseDb.collection("rainbowMedia").onSnapshot(snap=>{
+            const val={tournament:[],teamBracket:[],standings:[]};
+            snap.forEach(doc=>{const x=doc.data()||{};if(val[x.type] && x.src)val[x.type].push({id:String(x.id||doc.id),src:String(x.src),name:String(x.name||"تصویر")});});
+            Object.keys(val).forEach(k=>val[k].sort((a,b)=>String(a.id).localeCompare(String(b.id))));
+            localStorage.setItem(CLOUD_KEY_MAP[name],JSON.stringify(val));
+            refreshAllFromStorage();
+          },e=>{cloudLastError=String(e?.message||e);setCloudBadge("⚠️ خطای Firebase: "+cloudLastError.slice(0,90));});
+          return;
+        }
+        firebaseDb.collection(FIREBASE_DOC_COLLECTION).doc(cloudKey(name)).onSnapshot(snap=>{
+          if(!snap.exists)return;
+          const val=snap.data()?.value;
+          const lsKey=CLOUD_KEY_MAP[name];
+          if(CLOUD_RAW_STRING_KEYS.has(name)){localStorage.setItem(lsKey,String(val??""));}else{localStorage.setItem(lsKey,JSON.stringify(val));}
+          refreshAllFromStorage();
+        },e=>{cloudLastError=String(e?.message||e);setCloudBadge("⚠️ خطای Firebase: "+cloudLastError.slice(0,90));});
+      }catch(e){}
+    });
+  });
 }
+
 
 /* ===== Init ===== */
 loadRemembered();
