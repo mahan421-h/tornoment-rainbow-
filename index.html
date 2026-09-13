@@ -861,9 +861,10 @@
           <input id="newPlayerUser" placeholder="نام کاربری بازیکن">
           <input id="newPlayerPass" type="password" placeholder="رمز عبور بازیکن">
           <input id="newPlayerName" placeholder="نام بازیکن / آیدی">
+          <input id="newPlayerChatLink" placeholder="لینک گفتگوی این بازیکن (اختیاری)">
           <button class="btn primary" onclick="addPlayerAccount()">➕ ساخت اکانت بازیکن</button>
         </div>
-        <div class="muted">این بخش فقط برای سازنده است. سازنده برای هر بازیکن می‌تواند نام، شماره تلفن، نام بازی، لول، پیشرفت، تعداد بازی‌های انجام‌شده (که به‌صورت نمودار نمایش داده می‌شود)، تیم و نوبت بعدی را به‌صورت اختیاری ثبت کند.</div>
+        <div class="muted">این بخش فقط برای سازنده است. سازنده برای هر بازیکن می‌تواند نام، شماره تلفن، نام بازی، لول، پیشرفت، تعداد بازی‌های انجام‌شده (که به‌صورت نمودار نمایش داده می‌شود)، تیم، نوبت بعدی و لینک گفتگوی اختصاصی را به‌صورت اختیاری ثبت کند. اگر لینک گفتگوی اختصاصی برای بازیکنی ثبت نشود، لینک عمومی گفتگوی تیم‌ها به او نشان داده می‌شود.</div>
       </div>
       <div class="upload-box owner-only" id="leaderboardBox">
         <h4 onclick="toggleSection(this)">🏅 مدیریت لیدربرد <span class="chev">›</span></h4>
@@ -1527,6 +1528,13 @@ const NOTICE_KEY="rainbow_today_notice_v1";
 const NEWS_KEY="rainbow_news_v1";
 const EXTRA_BOXES_KEY="rainbow_extra_boxes_v1";
 const PLAYER_ACCOUNTS_KEY="rainbow_player_accounts_v1";
+const DEFAULT_PLAYER_ACCOUNTS=[
+  {id:"p-artinzf",username:"ARTINZF",password:"7564",name:"ARTINZF",progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:"",active:true},
+  {id:"p-mehrad",username:"MEHRAD",password:"5712",name:"MEHRAD",progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:"",active:true},
+  {id:"p-kamyar",username:"KAMYAR",password:"8229",name:"KAMYAR",progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:"",active:true},
+  {id:"p-rayan",username:"RAYAN",password:"7799",name:"RAYAN",progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:"",active:true},
+  {id:"p-mahanps5",username:"MAHANPS5",password:"7906",name:"MAHANPS5",progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:"",active:true}
+];
 const PLAYER_SESSION_KEY="rainbow_player_session_v1";
 const PLAYER_REMEMBER_KEY="rainbow_player_remember_v1";
 const DEFAULT_CONFIG={
@@ -1858,6 +1866,14 @@ function updatePresence(){
   const idx=users.findIndex(x=>x.id===id);if(idx>=0)users[idx]=me;else users.push(me);
   users=users.filter(x=>now-x.lastSeen<30000);localStorage.setItem(PRESENCE_KEY,JSON.stringify(users));
   renderUsers();
+  pushPresenceToCloud(me);
+}
+async function pushPresenceToCloud(me){
+  if(!CLOUD_READY) return;
+  try{
+    if(!(await waitFirebaseAuth())) return;
+    await firebaseDb.collection("rainbowPresence").doc(me.id).set({name:me.name,role:me.role,lastSeen:me.lastSeen});
+  }catch(e){}
 }
 function roleSessionId(){let id=sessionStorage.getItem("rainbow_presence_id");if(!id){id=Math.random().toString(36).slice(2)+Date.now();sessionStorage.setItem("rainbow_presence_id",id)}return id}
 function renderUsers(){
@@ -1878,10 +1894,16 @@ setInterval(updatePresence,10000);
 setInterval(renderUsers,5000);
 
 /* ===== Player accounts / private progress ===== */
-function loadPlayerAccounts(){try{const x=JSON.parse(localStorage.getItem(PLAYER_ACCOUNTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
+function loadPlayerAccounts(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(PLAYER_ACCOUNTS_KEY)||"null");
+    if(Array.isArray(saved)&&saved.length) return saved;
+  }catch(e){}
+  return DEFAULT_PLAYER_ACCOUNTS.slice();
+}
 function savePlayerAccounts(x){localStorage.setItem(PLAYER_ACCOUNTS_KEY,JSON.stringify(x));sharedSet("playerAccounts",x);}
 function currentPlayer(){const id=sessionStorage.getItem(PLAYER_SESSION_KEY);return loadPlayerAccounts().find(x=>x.id===id&&x.active!==false)||null}
-function addPlayerAccount(){if(!adminAllowed())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();showToast("✅ اکانت بازیکن ساخته شد")}
+function addPlayerAccount(){if(!adminAllowed())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim(),cl=(document.getElementById("newPlayerChatLink")?.value||"").trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:cl,active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName","newPlayerChatLink"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();showToast("✅ اکانت بازیکن ساخته شد")}
 function updatePlayer(id,key,value){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;a[key]=String(value);savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard()}
 function deletePlayerAccount(id){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(confirm(`اکانت ${a.name||a.username} حذف شود؟`)){savePlayerAccounts(x.filter(q=>q.id!==id));renderDynamicContent();showToast("🗑️ اکانت بازیکن حذف شد")}}
 function renderPlayerDashboard(){const d=document.getElementById("playerDashboard");if(!d)return;const a=currentPlayer();if(getRole()!=="player"||!a){d.classList.remove("show");return}d.classList.add("show");document.getElementById("playerWelcome").textContent=`🎮 ${a.name||a.username}`;document.getElementById("playerProgress").textContent=a.progress||"—";document.getElementById("playerGames").textContent=a.games||"0";document.getElementById("playerTeam").textContent=a.team||"—";document.getElementById("playerTurn").textContent=a.turn||"—";document.getElementById("playerNote").textContent=a.note||"هنوز اطلاعاتی از طرف سازنده ثبت نشده است."}
@@ -1909,7 +1931,8 @@ function saveTeamChatLink(){
   renderTeamChat(); showToast("✅ لینک گفتگو ذخیره شد");
 }
 function goToTeamChat(){
-  const link=loadTeamChatLink();
+  const p=currentPlayer();
+  const link=(p && p.chatLink) ? p.chatLink : loadTeamChatLink();
   if(!link){showToast("🔜 به زودی");return;}
   window.open(link,"_blank","noopener");
 }
@@ -1967,7 +1990,7 @@ function renderDynamicContent(){
    const maxGames=Math.max(1,...allPlayers.map(a=>parseInt(a.games)||0));
    pl.innerHTML=allPlayers.map(a=>{
      const gnum=parseInt(a.games)||0, pct=Math.round(gnum/maxGames*100);
-     return `<div class="player-admin-row"><div class="player-name">🎮 ${escapeHtml(a.name||a.username)}</div><input value="${escapeHtml(a.username)}" onchange="updatePlayer('${a.id}','username',this.value)" placeholder="نام کاربری"><input type="password" value="${escapeHtml(a.password||"")}" onchange="updatePlayer('${a.id}','password',this.value)" placeholder="رمز"><input value="${escapeHtml(a.name||"")}" onchange="updatePlayer('${a.id}','name',this.value)" placeholder="نام بازیکن (اختیاری)"><input value="${escapeHtml(a.phone||"")}" onchange="updatePlayer('${a.id}','phone',this.value)" placeholder="شماره تلفن (اختیاری)"><input value="${escapeHtml(a.gameName||"")}" onchange="updatePlayer('${a.id}','gameName',this.value)" placeholder="نام داخل بازی (اختیاری)"><input value="${escapeHtml(a.level||"")}" onchange="updatePlayer('${a.id}','level',this.value)" placeholder="لول (اختیاری)"><input value="${escapeHtml(a.progress||"")}" onchange="updatePlayer('${a.id}','progress',this.value)" placeholder="پیشرفت، مثال ۳/۵ یا ۶۰٪"><input type="number" value="${escapeHtml(a.games||"")}" onchange="updatePlayer('${a.id}','games',this.value)" placeholder="تعداد بازی‌های انجام‌شده"><div class="player-chart-bar" title="نمودار بازی‌های انجام‌شده"><i style="width:${pct}%"></i><span>${gnum} بازی</span></div><input value="${escapeHtml(a.team||"")}" onchange="updatePlayer('${a.id}','team',this.value)" placeholder="تیم"><input value="${escapeHtml(a.turn||"")}" onchange="updatePlayer('${a.id}','turn',this.value)" placeholder="نوبت / ساعت"><textarea onchange="updatePlayer('${a.id}','note',this.value)" placeholder="توضیحات">${escapeHtml(a.note||"")}</textarea><button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️ حذف</button></div>`;
+     return `<div class="player-admin-row"><div class="player-name">🎮 ${escapeHtml(a.name||a.username)}</div><input value="${escapeHtml(a.username)}" onchange="updatePlayer('${a.id}','username',this.value)" placeholder="نام کاربری"><input type="password" value="${escapeHtml(a.password||"")}" onchange="updatePlayer('${a.id}','password',this.value)" placeholder="رمز"><input value="${escapeHtml(a.name||"")}" onchange="updatePlayer('${a.id}','name',this.value)" placeholder="نام بازیکن (اختیاری)"><input value="${escapeHtml(a.phone||"")}" onchange="updatePlayer('${a.id}','phone',this.value)" placeholder="شماره تلفن (اختیاری)"><input value="${escapeHtml(a.gameName||"")}" onchange="updatePlayer('${a.id}','gameName',this.value)" placeholder="نام داخل بازی (اختیاری)"><input value="${escapeHtml(a.level||"")}" onchange="updatePlayer('${a.id}','level',this.value)" placeholder="لول (اختیاری)"><input value="${escapeHtml(a.progress||"")}" onchange="updatePlayer('${a.id}','progress',this.value)" placeholder="پیشرفت، مثال ۳/۵ یا ۶۰٪"><input type="number" value="${escapeHtml(a.games||"")}" onchange="updatePlayer('${a.id}','games',this.value)" placeholder="تعداد بازی‌های انجام‌شده"><div class="player-chart-bar" title="نمودار بازی‌های انجام‌شده"><i style="width:${pct}%"></i><span>${gnum} بازی</span></div><input value="${escapeHtml(a.team||"")}" onchange="updatePlayer('${a.id}','team',this.value)" placeholder="تیم"><input value="${escapeHtml(a.turn||"")}" onchange="updatePlayer('${a.id}','turn',this.value)" placeholder="نوبت / ساعت"><textarea onchange="updatePlayer('${a.id}','note',this.value)" placeholder="توضیحات">${escapeHtml(a.note||"")}</textarea><input value="${escapeHtml(a.chatLink||"")}" onchange="updatePlayer('${a.id}','chatLink',this.value)" placeholder="لینک گفتگوی این بازیکن (اختیاری)"><button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️ حذف</button></div>`;
    }).join("")||`<div class="muted">هنوز اکانت بازیکنی ساخته نشده است.</div>`;
  }
  const eb=document.getElementById("extraBoxesAdmin");if(eb && !isEditingInside(eb))eb.innerHTML=loadExtraBoxes().map(b=>`<div class="extra-admin-row"><strong>${escapeHtml(b.title)}</strong><textarea rows="2" onchange="updateExtraBox('${b.id}',this.value)" placeholder="محتوای این باکس...">${escapeHtml(b.body)}</textarea><button class="mini-btn danger" onclick="deleteExtraBox('${b.id}')">حذف</button></div>`).join("");
@@ -2017,6 +2040,24 @@ function startCloudSync(){
   waitFirebaseAuth().then(async ok=>{
     if(!ok){setCloudBadge("❌ ورود Firebase انجام نشد");return;}
     await cloudPullAll(); refreshAllFromStorage(); setCloudBadge("☁️ Firebase فعال — همگام‌سازی زنده برای همه");
+    if(!localStorage.getItem(PLAYER_ACCOUNTS_KEY)){savePlayerAccounts(loadPlayerAccounts());refreshAllFromStorage();}
+    try{
+      firebaseDb.collection("rainbowPresence").onSnapshot(snap=>{
+        let local=[];try{local=JSON.parse(localStorage.getItem(PRESENCE_KEY)||"[]")}catch(e){}
+        const merged={};
+        local.forEach(u=>{if(u&&u.id)merged[u.id]=u;});
+        snap.forEach(doc=>{
+          const d=doc.data()||{};
+          if(!d.name)return;
+          const u={id:doc.id,name:String(d.name),role:String(d.role||""),lastSeen:Number(d.lastSeen)||0};
+          if(!merged[u.id]||u.lastSeen>merged[u.id].lastSeen)merged[u.id]=u;
+        });
+        const now=Date.now();
+        const list=Object.values(merged).filter(x=>now-x.lastSeen<120000);
+        localStorage.setItem(PRESENCE_KEY,JSON.stringify(list));
+        renderUsers();
+      },e=>{});
+    }catch(e){}
     const names=Object.keys(CLOUD_KEY_MAP);
     names.forEach(name=>{
       try{
