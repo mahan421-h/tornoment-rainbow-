@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>🌈 Rainbow 2V2 Tournament</title>
+<title>Rainbow 2V2 Tournament</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -477,8 +477,10 @@
 .upload-row input[type=file]{max-width:100%}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
 .media-card{position:relative;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#080a0f;min-height:130px}
-.media-card img{width:100%;height:170px;object-fit:cover;display:block;cursor:zoom-in}
+.media-card img{width:100%;height:170px;object-fit:cover;display:block;cursor:zoom-in;transition:.5s ease}
+.media-card:hover img{transform:scale(1.04)}
 .media-card .media-caption{padding:8px 10px;font-size:12px;color:var(--muted)}
+.media-card .media-zoom{position:absolute;top:8px;right:8px;z-index:2;padding:4px 9px;background:#000a;border:1px solid var(--line);border-radius:99px;font-size:10px;color:var(--muted);backdrop-filter:blur(6px);pointer-events:none}
 .media-delete{position:absolute;top:8px;left:8px;z-index:2}
 .image-placeholder{padding:30px 12px;text-align:center;color:var(--muted)}
 .winners-list{display:grid;gap:10px;margin-top:12px}
@@ -542,7 +544,7 @@
 <body>
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
-    <div class="login-logo">🌈</div>
+    <div class="login-logo">🛡️</div>
     <h2>Rainbow Tournament</h2>
     <p>برای ورود، حالت کاربری خود را انتخاب کنید.</p>
     <div class="login-tabs" style="grid-template-columns:repeat(3,1fr)">
@@ -570,7 +572,7 @@
   </div>
 </div>
 <div class="user-bar" id="userBar" style="display:none">
-  <span>🌈 Rainbow Tournament <span class="role-badge" id="roleBadge"></span></span>
+  <span>Rainbow Tournament <span class="role-badge" id="roleBadge"></span></span>
   <button class="mini-btn" onclick="logout()">خروج</button>
 </div>
 
@@ -833,7 +835,7 @@
 
   <!-- ===== فینال ===== -->
   <section class="final">
-    <strong>🏆 🌈 تیم‌ها آماده باشید! 🌈 🏆</strong>
+    <strong>🏆 تیم‌ها آماده باشید! 🏆</strong>
     <span>این آخرین تورنومنت 2V2 است — ساعت ۲۱:۳۰ داخل روم باشید و ساعت ۲۲:۰۰ الی ۲۲:۱۰ وارد کاستوم شوید.</span>
 
     <div class="actions">
@@ -1039,6 +1041,16 @@ function renderPublicTeamBracket(){
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
 }
+/* جلوگیری از پاک شدن متنی که کاربر در حال تایپ آن است، هنگام دریافت بروزرسانی همزمان از Firebase */
+function isEditingInside(elOrId){
+  const el=typeof elOrId==="string"?document.getElementById(elOrId):elOrId;
+  if(!el) return false;
+  const active=document.activeElement;
+  if(!active || active===document.body) return false;
+  const tag=active.tagName;
+  if(tag!=="INPUT" && tag!=="TEXTAREA" && tag!=="SELECT") return false;
+  return el.contains(active);
+}
 function toggleAdmin(){
   if(!isAdmin()){showToast("🔒 فقط مدیر دسترسی دارد");return;}
   const panel=document.getElementById("adminPanel");
@@ -1052,6 +1064,7 @@ function toggleSection(h4el){
 function renderAdminTeams(){
   const wrap=document.getElementById("adminTeams");
   if(!wrap) return;
+  if(isEditingInside(wrap)) return;
   wrap.innerHTML="";
   loadTeams().forEach((team,i)=>{
     const row=document.createElement("div");
@@ -1189,7 +1202,7 @@ async function enableNotifications(){
   if(!("Notification" in window)){showToast("❌ مرورگر شما نوتیفیکیشن را پشتیبانی نمی‌کند");return;}
   try{
     const perm=await Notification.requestPermission(); updateNotifBtn();
-    if(perm==="granted"){showToast("🔔 نوتیفیکیشن فعال شد!");sendNotification("🌈 Rainbow 2V2 Tournament","نوتیفیکیشن‌ها با موفقیت فعال شدند ✅");}
+    if(perm==="granted"){showToast("🔔 نوتیفیکیشن فعال شد!");sendNotification("Rainbow 2V2 Tournament","نوتیفیکیشن‌ها با موفقیت فعال شدند ✅");}
     else showToast("⚠️ اجازه نوتیفیکیشن داده نشد");
   }catch(e){showToast("❌ فعال‌سازی نوتیفیکیشن ممکن نشد")}
 }
@@ -1304,7 +1317,7 @@ function showToast(msg){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
 }
 function loadHiddenLegacyMedia(){try{return JSON.parse(localStorage.getItem("rainbow_hidden_legacy_media_v1")||"[]")}catch(e){return []}}
-function hideLegacyMedia(id){if(!isPrimaryAdmin())return;const x=loadHiddenLegacyMedia();if(!x.includes(id))x.push(id);localStorage.setItem("rainbow_hidden_legacy_media_v1",JSON.stringify(x));sharedSet("hiddenLegacyMedia",x);document.querySelector(`[data-legacy-media="${id}"]`)?.remove();showToast("🗑️ عکس قبلی حذف شد")}
+function hideLegacyMedia(id){if(!isPrimaryAdmin())return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const x=loadHiddenLegacyMedia();if(!x.includes(id))x.push(id);localStorage.setItem("rainbow_hidden_legacy_media_v1",JSON.stringify(x));sharedSet("hiddenLegacyMedia",x);document.querySelector(`[data-legacy-media="${id}"]`)?.remove();showToast("🗑️ عکس قبلی حذف شد")}
 function restoreLegacyMedia(){const hidden=loadHiddenLegacyMedia();document.querySelectorAll("[data-legacy-media]").forEach(el=>{if(hidden.includes(el.dataset.legacyMedia))el.remove()})}
 function openLightbox(el){
   const img=el.querySelector("img");openLightboxSrc(img.src);
@@ -1374,7 +1387,7 @@ function setupLightboxZoomEvents(){
 }
 
 async function shareIt(){
-  if(navigator.share){try{await navigator.share({title:"🌈 Rainbow 2V2 Tournament",text:"آخرین تورنومنت 2V2 — ساعت ۲۱:۳۰ در روم باشید!",url:location.href});}catch(e){}}
+  if(navigator.share){try{await navigator.share({title:"Rainbow 2V2 Tournament",text:"آخرین تورنومنت 2V2 — ساعت ۲۱:۳۰ در روم باشید!",url:location.href});}catch(e){}}
   else copyLink();
 }
 function copyLink(){
@@ -1604,6 +1617,18 @@ function ensureUploadProgressEl(){
   }
   return el;
 }
+/* مراحل فشرده‌سازی از کیفیت بالا به پایین؛ اولین حالتی که در محدودیت حجم Firestore جا شود انتخاب می‌شود */
+const IMAGE_QUALITY_STEPS=[[1600,0.9],[1440,0.85],[1280,0.82],[1100,0.78],[950,0.72],[800,0.62],[640,0.5]];
+const IMAGE_MAX_CHARS=900000; /* هر سند Firestore حداکثر حدود ۱ مگابایت است؛ برای امنیت کمی پایین‌تر نگه می‌داریم */
+async function compressImageSmart(raw,onProgress){
+  let best=null;
+  for(const [dim,q] of IMAGE_QUALITY_STEPS){
+    const data=await compressImage(raw,dim,q,onProgress);
+    best=data;
+    if(data.length<=IMAGE_MAX_CHARS) return data;
+  }
+  return best;
+}
 async function handleImageUpload(type,files){
   if(!creatorOnly())return; if(!files||!files.length)return;
   const m=loadMedia();
@@ -1612,25 +1637,30 @@ async function handleImageUpload(type,files){
   if(room<=0){showToast("⚠️ حداکثر ۱۰ تا عکس در هر باکس");return;}
   const arr=[...files]; if(arr.length>room){showToast("⚠️ حداکثر ۱۰ تا عکس در هر باکس");return;}
   const box=ensureUploadProgressEl(); box.style.display="block";
+  let failCount=0;
   try{
     for(let i=0;i<arr.length;i++){
       const file=arr[i];
       const label=(p)=>{box.innerHTML=`<div class="upload-progress-label">📤 پردازش ${escapeHtml(file.name)} (${i+1}/${arr.length})</div><div class="upload-progress-track"><div class="upload-progress-fill" style="width:${p}%"></div></div>`};
-      const raw=await readImage(file,label);
-      let data=await compressImage(raw,1000,0.72,label);
-      if(data.length>700000) data=await compressImage(raw,800,0.60,label);
-      if(data.length>900000) throw new Error("image-too-large");
-      m[type].push({id:Date.now()+"-"+Math.random(),src:data,name:file.name});
+      try{
+        const raw=await readImage(file,label);
+        const data=await compressImageSmart(raw,label);
+        if(!data || data.length>IMAGE_MAX_CHARS+50000){ failCount++; continue; }
+        m[type].push({id:Date.now()+"-"+Math.random(),src:data,name:file.name});
+      }catch(err){ failCount++; }
     }
-    const cloudOk=await saveMedia(m); renderMedia(); showToast(cloudOk||!CLOUD_READY?"✅ عکس‌ها ذخیره شدند":"⚠️ عکس روی این دستگاه ذخیره شد؛ همگام‌سازی ابری ناموفق بود");
+    const cloudOk=await saveMedia(m); renderMedia();
+    if(failCount && failCount===arr.length) showToast("❌ آپلود عکس ناموفق بود");
+    else if(failCount) showToast(`⚠️ ${faNum(failCount)} عکس آپلود نشد، بقیه ذخیره شدند`);
+    else showToast(cloudOk||!CLOUD_READY?"✅ عکس‌ها با کیفیت مناسب ذخیره شدند":"⚠️ عکس روی این دستگاه ذخیره شد؛ همگام‌سازی ابری ناموفق بود");
   }catch(e){showToast("❌ آپلود عکس ناموفق بود");}
   finally{setTimeout(()=>{box.style.display="none";box.innerHTML=""},500);}
 }
-async function deleteMedia(type,id){if(!creatorOnly())return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;await saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
+async function deleteMedia(type,id){if(!creatorOnly())return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;await saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
 function mediaCard(item,type){
   if(!item)return `<div class="image-placeholder compact-placeholder">📷 به زودی</div>`;
-  const deleteBtn=isPrimaryAdmin()?`<button class="mini-btn danger media-delete" onclick="deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
-  return `<div class="media-card"><img src="${item.src}" alt="${escapeHtml(item.name||"تصویر")}" onclick="openLightboxSrc('${item.src}')">${deleteBtn}<div class="media-caption">${escapeHtml(item.name||"تصویر")}</div></div>`;
+  const deleteBtn=isPrimaryAdmin()?`<button class="mini-btn danger media-delete" onclick="event.stopPropagation();deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
+  return `<div class="media-card"><span class="zoom media-zoom">🔍 بزرگنمایی</span><img src="${item.src}" alt="${escapeHtml(item.name||"تصویر")}" onclick="openLightboxSrc('${item.src}')">${deleteBtn}<div class="media-caption">${escapeHtml(item.name||"تصویر")}</div></div>`;
 }
 function renderMedia(){
   const m=loadMedia(); ["tournament","teamBracket","standings"].forEach(k=>{if(!Array.isArray(m[k]))m[k]=m[k]?[m[k]]:[]});
@@ -1707,7 +1737,7 @@ function resetRules(){
 function renderRules(){
   const x=loadRules(), pub=document.getElementById("rulesPublic"), adm=document.getElementById("adminRules"), admin=isAdmin();
   if(pub)pub.innerHTML=x.map(r=>`<div class="rule"><div class="icon">${r.icon}</div><div>${r.text}</div></div>`).join("");
-  if(adm)adm.innerHTML=x.map((r,i)=>`<div class="rule" style="display:flex;align-items:center;gap:8px"><div class="icon">${r.icon}</div><div style="flex:1">${r.text}</div>${admin?`<button class="mini-btn danger" onclick="removeRule(${i})">حذف</button>`:""}</div>`).join("");
+  if(adm && !isEditingInside(adm))adm.innerHTML=x.map((r,i)=>`<div class="rule" style="display:flex;align-items:center;gap:8px"><div class="icon">${r.icon}</div><div style="flex:1">${r.text}</div>${admin?`<button class="mini-btn danger" onclick="removeRule(${i})">حذف</button>`:""}</div>`).join("");
 }
 function deleteWinner(id){
   if(!creatorOnly())return; saveWinners(loadWinners().filter(x=>x.id!==id));renderWinners();
@@ -1715,7 +1745,7 @@ function deleteWinner(id){
 function renderWinners(){
   const x=loadWinners().sort((a,b)=>a.rank-b.rank), pub=document.getElementById("winnersPublic"), adm=document.getElementById("adminWinners");
   if(pub)pub.innerHTML=x.length?`<div class="winners-list">${x.map(w=>`<div class="score-row"><div class="name">🏅 مقام ${faNum(w.rank)} — ${escapeHtml(w.name)}</div><div class="score-num score-win">${faNum(w.wins)} برد</div></div>`).join("")}</div>`:`<div class="muted">هنوز برنده‌ای ثبت نشده است.</div>`;
-  if(adm)adm.innerHTML=x.map(w=>`<div class="winner-row"><input value="${escapeHtml(w.name)}" onchange="updateWinner('${w.id}','name',this.value)"><input type="number" min="1" value="${w.rank}" onchange="updateWinner('${w.id}','rank',this.value)"><input type="number" min="0" value="${w.wins}" onchange="updateWinner('${w.id}','wins',this.value)"><button class="mini-btn danger" onclick="deleteWinner('${w.id}')">حذف</button></div>`).join("");
+  if(adm && !isEditingInside(adm))adm.innerHTML=x.map(w=>`<div class="winner-row"><input value="${escapeHtml(w.name)}" onchange="updateWinner('${w.id}','name',this.value)"><input type="number" min="1" value="${w.rank}" onchange="updateWinner('${w.id}','rank',this.value)"><input type="number" min="0" value="${w.wins}" onchange="updateWinner('${w.id}','wins',this.value)"><button class="mini-btn danger" onclick="deleteWinner('${w.id}')">حذف</button></div>`).join("");
 }
 function updateWinner(id,key,val){
   if(!creatorOnly())return;const x=loadWinners(),w=x.find(a=>a.id===id);if(!w)return;
@@ -1776,11 +1806,11 @@ function updateExtraBox(id,v){if(!creatorOnly())return;const x=loadExtraBoxes(),
 function deleteExtraBox(id){if(!creatorOnly())return;saveExtraBoxes(loadExtraBoxes().filter(x=>x.id!==id));renderDynamicContent()}
 function renderDynamicContent(){
  const n=loadNotice(), pub=document.getElementById("todayNoticePublic");if(pub){pub.textContent=n||"اطلاع رسانی امروز به زودی";pub.classList.toggle("compact-empty",!n)}
- const ni=document.getElementById("todayNoticeInput");if(ni)ni.value=n;
+ const ni=document.getElementById("todayNoticeInput");if(ni && document.activeElement!==ni)ni.value=n;
  const list=document.getElementById("adminNewsList");if(list)list.innerHTML=loadNews().map(x=>`<div class="news-admin-row"><strong>${escapeHtml(x.title)}</strong><span>${escapeHtml(x.body)}</span><button class="mini-btn danger" onclick="deleteNews('${x.id}')">حذف</button></div>`).join("")||`<div class="muted">هنوز خبری ثبت نشده است.</div>`;
- const al=document.getElementById("accountsList");if(al)al.innerHTML=loadAccounts().map(a=>{const online=getAccountOnline(a);return `<div class="account-row ${a.role==="admin"?"creator-account":""}"><input value="${escapeHtml(a.username)}" onchange="updateAccount('${a.id}','username',this.value)" aria-label="نام کاربری"><input type="password" placeholder="رمز جدید" onchange="updateAccount('${a.id}','password',this.value)" aria-label="رمز جدید"><span>${a.role==="admin"?"👑 سازنده":"🛡️ ادمین"} ${online?"🟢 آنلاین":"⚪ آفلاین"}</span><div class="account-actions">${accountActionHtml(a)}</div></div>`}).join("")||`<div class="muted">هنوز اکانتی ساخته نشده است.</div>`;
- const pl=document.getElementById("playersList");if(pl)pl.innerHTML=loadPlayerAccounts().map(a=>`<div class="player-admin-row"><div class="player-name">🎮 ${escapeHtml(a.name||a.username)}</div><input value="${escapeHtml(a.username)}" onchange="updatePlayer('${a.id}','username',this.value)" placeholder="نام کاربری"><input type="password" value="${escapeHtml(a.password||"")}" onchange="updatePlayer('${a.id}','password',this.value)" placeholder="رمز"><input value="${escapeHtml(a.progress||"")}" onchange="updatePlayer('${a.id}','progress',this.value)" placeholder="پیشرفت، مثال ۳/۵ یا ۶۰٪"><input value="${escapeHtml(a.games||"")}" onchange="updatePlayer('${a.id}','games',this.value)" placeholder="بازی‌های انجام‌شده"><input value="${escapeHtml(a.team||"")}" onchange="updatePlayer('${a.id}','team',this.value)" placeholder="تیم"><input value="${escapeHtml(a.turn||"")}" onchange="updatePlayer('${a.id}','turn',this.value)" placeholder="نوبت / ساعت"><textarea onchange="updatePlayer('${a.id}','note',this.value)" placeholder="توضیحات">${escapeHtml(a.note||"")}</textarea><button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️ حذف</button></div>`).join("")||`<div class="muted">هنوز اکانت بازیکنی ساخته نشده است.</div>`;
- const eb=document.getElementById("extraBoxesAdmin");if(eb)eb.innerHTML=loadExtraBoxes().map(b=>`<div class="extra-admin-row"><strong>${escapeHtml(b.title)}</strong><textarea rows="2" onchange="updateExtraBox('${b.id}',this.value)" placeholder="محتوای این باکس...">${escapeHtml(b.body)}</textarea><button class="mini-btn danger" onclick="deleteExtraBox('${b.id}')">حذف</button></div>`).join("");
+ const al=document.getElementById("accountsList");if(al && !isEditingInside(al))al.innerHTML=loadAccounts().map(a=>{const online=getAccountOnline(a);return `<div class="account-row ${a.role==="admin"?"creator-account":""}"><input value="${escapeHtml(a.username)}" onchange="updateAccount('${a.id}','username',this.value)" aria-label="نام کاربری"><input type="password" placeholder="رمز جدید" onchange="updateAccount('${a.id}','password',this.value)" aria-label="رمز جدید"><span>${a.role==="admin"?"👑 سازنده":"🛡️ ادمین"} ${online?"🟢 آنلاین":"⚪ آفلاین"}</span><div class="account-actions">${accountActionHtml(a)}</div></div>`}).join("")||`<div class="muted">هنوز اکانتی ساخته نشده است.</div>`;
+ const pl=document.getElementById("playersList");if(pl && !isEditingInside(pl))pl.innerHTML=loadPlayerAccounts().map(a=>`<div class="player-admin-row"><div class="player-name">🎮 ${escapeHtml(a.name||a.username)}</div><input value="${escapeHtml(a.username)}" onchange="updatePlayer('${a.id}','username',this.value)" placeholder="نام کاربری"><input type="password" value="${escapeHtml(a.password||"")}" onchange="updatePlayer('${a.id}','password',this.value)" placeholder="رمز"><input value="${escapeHtml(a.progress||"")}" onchange="updatePlayer('${a.id}','progress',this.value)" placeholder="پیشرفت، مثال ۳/۵ یا ۶۰٪"><input value="${escapeHtml(a.games||"")}" onchange="updatePlayer('${a.id}','games',this.value)" placeholder="بازی‌های انجام‌شده"><input value="${escapeHtml(a.team||"")}" onchange="updatePlayer('${a.id}','team',this.value)" placeholder="تیم"><input value="${escapeHtml(a.turn||"")}" onchange="updatePlayer('${a.id}','turn',this.value)" placeholder="نوبت / ساعت"><textarea onchange="updatePlayer('${a.id}','note',this.value)" placeholder="توضیحات">${escapeHtml(a.note||"")}</textarea><button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️ حذف</button></div>`).join("")||`<div class="muted">هنوز اکانت بازیکنی ساخته نشده است.</div>`;
+ const eb=document.getElementById("extraBoxesAdmin");if(eb && !isEditingInside(eb))eb.innerHTML=loadExtraBoxes().map(b=>`<div class="extra-admin-row"><strong>${escapeHtml(b.title)}</strong><textarea rows="2" onchange="updateExtraBox('${b.id}',this.value)" placeholder="محتوای این باکس...">${escapeHtml(b.body)}</textarea><button class="mini-btn danger" onclick="deleteExtraBox('${b.id}')">حذف</button></div>`).join("");
  const pubExtra=document.getElementById("publicExtraBoxes");if(pubExtra)pubExtra.innerHTML=loadExtraBoxes().map(b=>`<div class="dynamic-box ${b.body?"":"compact-empty"}"><h3>${escapeHtml(b.title)}</h3><div>${escapeHtml(b.body||"به زودی")}</div></div>`).join("");
  const pubNews=document.getElementById("newsPageList");if(pubNews)pubNews.innerHTML=loadNews().map(x=>`<article class="news-card"><h3>${escapeHtml(x.title)}</h3><small>${escapeHtml(x.date||"")}</small><p>${escapeHtml(x.body)}</p></article>`).join("")||`<div class="dynamic-box compact-empty">خبرها به زودی</div>`;
 }
@@ -1813,6 +1843,7 @@ function refreshAllFromStorage(){
   tournamentConfig=loadConfig();
   renderTeams(); renderAdminTeams(); renderScoreboard(); renderRules(); renderMedia(); renderWinners();
   renderDynamicContent(); renderPlayerDashboard(); renderUsers(); updateTimerLabels();
+  restoreLegacyMedia();
   if(isAdmin() && document.getElementById("adminPanel")?.classList.contains("show")) loadConfigToForm();
 }
 function setCloudBadge(text){const b=document.getElementById("cloudSyncBadge"); if(b) b.textContent=text;}
