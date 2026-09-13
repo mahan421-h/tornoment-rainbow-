@@ -1898,6 +1898,25 @@ function startCloudSync(){
     });
   });
 }
+/* ===== بروزرسانی خودکار بدون نیاز به رفرش دستی =====
+   اتصال زنده‌ی Firestore معمولاً خودش تغییرات را فوری می‌فرستد، اما وقتی صفحه در پس‌زمینه
+   می‌رود (قفل شدن صفحه گوشی، رفتن به اپ دیگر) مرورگرها اغلب این اتصال را قطع می‌کنند و
+   گاهی خودشان به‌موقع وصل نمی‌شوند. برای همین وقتی صفحه دوباره دیده می‌شود یا اینترنت
+   وصل می‌شود، به‌صورت دستی هم یک بار همه‌چیز را از ابر می‌کشیم؛ و هر ۲۰ ثانیه هم یک
+   بروزرسانی پشتیبان انجام می‌شود تا در هر شرایطی سایت خودکار به‌روز بماند. */
+async function forceCloudResync(){
+  if(!CLOUD_READY) return;
+  try{
+    const ok=await waitFirebaseAuth();
+    if(!ok) return;
+    const changed=await cloudPullAll();
+    if(changed) refreshAllFromStorage();
+  }catch(e){}
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") forceCloudResync(); });
+window.addEventListener("online",forceCloudResync);
+window.addEventListener("focus",forceCloudResync);
+setInterval(forceCloudResync,20000);
 
 
 /* ===== Init ===== */
