@@ -437,6 +437,15 @@
 .mini-btn.danger:hover{background:rgba(233,52,69,.15)}.locked-note{padding:10px 12px;border-radius:12px;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);color:#ffd66b;font-size:12px;margin-top:10px}.mode-badge{display:inline-block;margin-right:6px;padding:4px 8px;border-radius:8px;background:rgba(167,108,255,.13);color:#d0b5ff;font-size:11px}@media(max-width:600px){.settings-grid{grid-template-columns:1fr}.settings-grid .full{grid-column:auto}}
   /* ===== v2.0 Tournament UX ===== */
   .admin-panel{display:none;margin-top:14px;padding:20px;border:1px solid rgba(244,189,63,.35);border-radius:20px;background:linear-gradient(160deg,rgba(22,140,255,.08),rgba(10,13,19,.94) 40%);backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03)}
+  /* رفع باگ مهم: تمام فیلدهای متنی داخل پنل مدیریت (تیم‌ها، برنده‌ها، اکانت‌ها، بازیکنان، باکس‌های سفارشی) باید همیشه پس‌زمینه و رنگ متن مشخص داشته باشند، وگرنه مرورگر آن‌ها را با ظاهر پیش‌فرض کم‌کنتراست نمایش می‌دهد و متن تایپ‌شده انگار «نامرئی» به‌نظر می‌رسد */
+  .admin-panel input:not([type="checkbox"]),.admin-panel textarea,.admin-panel select{
+    background:#07090d;color:var(--text);border:1px solid var(--line-strong);
+    border-radius:12px;padding:11px 13px;font:inherit;width:100%;
+  }
+  .admin-panel input:not([type="checkbox"]):focus,.admin-panel textarea:focus,.admin-panel select:focus{
+    outline:none;border-color:#168cff;box-shadow:0 0 0 3px rgba(22,140,255,.18);
+  }
+  .admin-panel input::placeholder,.admin-panel textarea::placeholder{color:var(--muted);opacity:1}
   .admin-panel.show{display:block;animation:adminPop .25s ease}
   @keyframes adminPop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   .admin-grid{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:12px}
@@ -515,7 +524,8 @@
   .admin-panel .btn{min-height:42px}
   .admin-panel .actions{display:flex;flex-wrap:wrap;gap:9px}
   .admin-team{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:9px;margin:8px 0;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.025)}
-  .admin-team input{min-width:0}
+  .admin-team input{min-width:0;background:#07090d;color:var(--text);border:1px solid var(--line-strong);border-radius:12px;padding:11px 13px;font:inherit}
+  .admin-team input:focus{outline:none;border-color:#168cff;box-shadow:0 0 0 3px rgba(22,140,255,.18)}
   .admin-team .mini-btn{min-width:40px}
   .media-grid{align-items:start}
   .media-card{position:relative;overflow:hidden;border-radius:15px}
@@ -746,12 +756,12 @@
         <div class="actions" style="margin-top:12px">
           <button class="btn primary" onclick="saveTournamentConfig()">💾 ذخیره تنظیمات</button>
         </div>
-        <div class="locked-note">🔒 این بخش فقط توسط سازنده قابل تغییر است. هر تغییری که سازنده اینجا ذخیره کند، برای همه‌ی بازدیدکننده‌های سایت روی هر دستگاهی نمایش داده می‌شود.</div>
+        <div class="locked-note">🔒 این بخش توسط مدیران (سازنده و ادمین) قابل تغییر است. هر تغییری که اینجا ذخیره شود، برای همه‌ی بازدیدکننده‌های سایت روی هر دستگاهی نمایش داده می‌شود.</div>
       </div>
 
       <div class="upload-box">
         <h4 onclick="toggleSection(this)">👥 مدیریت تیم‌ها <span class="chev">›</span></h4>
-        <div class="muted" style="margin-bottom:10px;font-size:13px">تیم‌ها فقط توسط سازنده قابل ویرایش‌اند و برای همه‌ی بازدیدکننده‌ها ذخیره و نمایش داده می‌شوند.</div>
+        <div class="muted" style="margin-bottom:10px;font-size:13px">تیم‌ها توسط مدیران قابل ویرایش‌اند و برای همه‌ی بازدیدکننده‌ها ذخیره و نمایش داده می‌شوند.</div>
         <div id="adminTeams"></div>
         <div class="admin-grid">
           <input id="newTeamInput" placeholder="نام تیم جدید، مثال: Player1 + Player2">
@@ -941,7 +951,7 @@ async function waitFirebaseAuth(){
   if(firebaseUser) return true;
   return new Promise(resolve=>{
     const unsub=firebaseApp.auth().onAuthStateChanged(u=>{unsub();firebaseUser=u||null;resolve(!!u);});
-    setTimeout(()=>{try{unsub();}catch(e){} resolve(!!firebaseUser);},8000);
+    setTimeout(()=>{try{unsub();}catch(e){} resolve(!!firebaseUser);},15000);
   });
 }
 async function fbSet(name,val){
@@ -1006,11 +1016,11 @@ function loadTeams(){
     return Array.isArray(saved)&&saved.length ? saved.filter(Boolean).slice(0,16) : [...DEFAULT_TEAMS];
   }catch(e){ return [...DEFAULT_TEAMS]; }
 }
-function saveTeams(list){
+async function saveTeams(list){
   const clean=list.map(s=>String(s).trim()).filter(Boolean).slice(0,16);
   localStorage.setItem(TEAMS_KEY,JSON.stringify(clean));
-  sharedSet("teams",clean);
   renderTeams(); renderAdminTeams(); renderScoreboard();
+  return await sharedSet("teams",clean);
 }
 function teamPlayers(team){ return team.split("+").map(s=>s.trim()).filter(Boolean); }
 function initials(team){
@@ -1055,7 +1065,7 @@ function toggleAdmin(){
   if(!isAdmin()){showToast("🔒 فقط مدیر دسترسی دارد");return;}
   const panel=document.getElementById("adminPanel");
   panel.classList.toggle("show");
-  if(panel.classList.contains("show")) { renderAdminTeams(); renderMedia(); renderWinners(); renderUsers(); renderRules(); renderDynamicContent(); document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isPrimaryAdmin()?"block":"none"); restoreLegacyMedia(); }
+  if(panel.classList.contains("show")) { renderAdminTeams(); renderMedia(); renderWinners(); renderUsers(); renderRules(); renderDynamicContent(); document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isAdmin()?"block":"none"); restoreLegacyMedia(); }
 }
 /* ===== باز/بسته کردن بخش‌های پنل تنظیمات — ساده و مرتب ===== */
 function toggleSection(h4el){
@@ -1076,32 +1086,38 @@ function renderAdminTeams(){
 function getAdminList(){
   return [...document.querySelectorAll("#adminTeams input")].map(i=>i.value);
 }
-function saveAdminTeams(){
-  if(!creatorOnly())return;
+function cloudResultToast(ok,okMsg){
+  showToast(ok?okMsg:"⚠️ روی این دستگاه ذخیره شد ولی همگام‌سازی ابری (Firebase) ناموفق بود — اتصال اینترنت یا تنظیمات Firebase را بررسی کنید");
+}
+async function saveAdminTeams(){
+  if(!adminAllowed())return;
   const list=getAdminList();
   if(!list.filter(Boolean).length){showToast("❌ حداقل یک تیم لازم است");return;}
-  saveTeams(list); renderAdminTeams(); renderTeams(); renderScoreboard(); showToast("✅ تیم‌ها ذخیره شدند");
+  const ok=await saveTeams(list); renderAdminTeams(); renderTeams(); renderScoreboard();
+  cloudResultToast(ok,"✅ تیم‌ها ذخیره و برای همه همگام‌سازی شدند");
 }
-function addTeam(){
-  if(!creatorOnly())return;
+async function addTeam(){
+  if(!adminAllowed())return;
   const input=document.getElementById("newTeamInput");
   const value=input.value.trim();
   if(!value){showToast("⚠️ نام تیم را وارد کنید");return;}
-  const list=getAdminList(); list.push(value); saveTeams(list); input.value=""; showToast("➕ تیم اضافه شد");
+  const list=getAdminList(); list.push(value); const ok=await saveTeams(list); input.value="";
+  cloudResultToast(ok,"➕ تیم اضافه و همگام‌سازی شد");
 }
-function removeTeam(i){
-  if(!creatorOnly())return;
-  const list=getAdminList(); list.splice(i,1); saveTeams(list); renderAdminTeams();
+async function removeTeam(i){
+  if(!adminAllowed())return;
+  const list=getAdminList(); list.splice(i,1); await saveTeams(list); renderAdminTeams();
 }
-function moveTeam(i,dir){
-  if(!creatorOnly())return;
+async function moveTeam(i,dir){
+  if(!adminAllowed())return;
   const list=getAdminList(), j=i+dir;
   if(j<0||j>=list.length) return;
-  [list[i],list[j]]=[list[j],list[i]]; saveTeams(list); renderAdminTeams();
+  [list[i],list[j]]=[list[j],list[i]]; await saveTeams(list); renderAdminTeams();
 }
-function resetTeams(){
-  if(!creatorOnly())return;
-  localStorage.removeItem(TEAMS_KEY); sharedSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams(); showToast("↩️ تیم‌ها بازنشانی شدند");
+async function resetTeams(){
+  if(!adminAllowed())return;
+  localStorage.removeItem(TEAMS_KEY); const ok=await sharedSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams();
+  cloudResultToast(ok,"↩️ تیم‌ها بازنشانی و همگام‌سازی شدند");
 }
 
 /* ===== Profiles ===== */
@@ -1132,7 +1148,7 @@ function renderScoreboard(){
   }).join("") || `<div class="muted">هنوز تیمی ثبت نشده است.</div>`;
 }
 function editScore(i){
-  if(!creatorOnly())return;
+  if(!adminAllowed())return;
   const team=loadTeams()[i], scores=loadScores(), s=scores[team]||{win:0,loss:0};
   const win=prompt(`تعداد برد «${team}»:`,s.win??0);
   if(win===null)return;
@@ -1317,7 +1333,7 @@ function showToast(msg){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
 }
 function loadHiddenLegacyMedia(){try{return JSON.parse(localStorage.getItem("rainbow_hidden_legacy_media_v1")||"[]")}catch(e){return []}}
-function hideLegacyMedia(id){if(!isPrimaryAdmin())return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const x=loadHiddenLegacyMedia();if(!x.includes(id))x.push(id);localStorage.setItem("rainbow_hidden_legacy_media_v1",JSON.stringify(x));sharedSet("hiddenLegacyMedia",x);document.querySelector(`[data-legacy-media="${id}"]`)?.remove();showToast("🗑️ عکس قبلی حذف شد")}
+function hideLegacyMedia(id){if(!isAdmin())return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const x=loadHiddenLegacyMedia();if(!x.includes(id))x.push(id);localStorage.setItem("rainbow_hidden_legacy_media_v1",JSON.stringify(x));sharedSet("hiddenLegacyMedia",x);document.querySelector(`[data-legacy-media="${id}"]`)?.remove();showToast("🗑️ عکس قبلی حذف شد")}
 function restoreLegacyMedia(){const hidden=loadHiddenLegacyMedia();document.querySelectorAll("[data-legacy-media]").forEach(el=>{if(hidden.includes(el.dataset.legacyMedia))el.remove()})}
 function openLightbox(el){
   const img=el.querySelector("img");openLightboxSrc(img.src);
@@ -1463,6 +1479,9 @@ function isPrimaryAdmin(){ return getRole()==="admin"; }
 function isAdmin2(){ return getRole()==="admin2"; }
 function admin2Active(){ return localStorage.getItem(ADMIN2_ACTIVE_KEY)!=="0"; }
 function creatorOnly(){if(!isPrimaryAdmin()){showToast("⛔ شما مجوز این کار را ندارید");return false;}return true;}
+/* مدیریت روزمره‌ی محتوا (تیم‌ها، عکس‌ها، قوانین، اخبار و...) برای هر دو نقش مدیر (سازنده و ادمین) آزاد است؛
+   فقط ساخت/ویرایش/حذف خودِ اکانت‌های مدیریتی مخصوص سازنده اصلی باقی می‌ماند */
+function adminAllowed(){if(!isAdmin()){showToast("⛔ برای این کار باید با اکانت مدیر وارد شوید");return false;}return true;}
 function loadConfig(){
   try{
     const saved=JSON.parse(localStorage.getItem(CONFIG_KEY)||"null");
@@ -1492,7 +1511,7 @@ function applyRoleUI(){
   badge.classList.toggle("admin",admin);
   document.querySelectorAll(".score-edit-btn").forEach(b=>{b.style.display=admin?"inline-block":"none";}); const at=document.getElementById("adminToggleButton"); if(at)at.style.display=admin?"inline-block":"none";
   document.querySelectorAll("#adminPanel").forEach(el=>el.classList.remove("show"));
-  document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isPrimaryAdmin()?"block":"none"); restoreLegacyMedia();
+  document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isAdmin()?"block":"none"); restoreLegacyMedia();
   if(dash) dash.classList.toggle("show",role==="player");
   renderMedia(); renderWinners(); renderUsers(); renderRules(); renderDynamicContent(); renderPlayerDashboard(); updateTimerLabels();
 }
@@ -1533,7 +1552,7 @@ function loadConfigToForm(){
   document.getElementById("cfgCountdown").value=c.countdown||60;
 }
 function saveTournamentConfig(){
-  if(!creatorOnly())return;
+  if(!adminAllowed())return;
   const c={title:document.getElementById("cfgTitle").value.trim()||"Rainbow Tournament",mode:document.getElementById("cfgMode").value,date:document.getElementById("cfgDate").value,roomTime:document.getElementById("cfgRoomTime").value||"21:30",startTime:document.getElementById("cfgStartTime").value||"22:00",groupLink:document.getElementById("cfgGroupLink").value.trim()||DEFAULT_CONFIG.groupLink,countdown:Math.max(5,Math.min(600,parseInt(document.getElementById("cfgCountdown").value)||60))};
   saveConfig(c); tournamentConfig=c; renderTeams(); renderScoreboard(); updateTimers(); showToast("✅ تنظیمات مسابقه ذخیره شد");
 }
@@ -1630,7 +1649,7 @@ async function compressImageSmart(raw,onProgress){
   return best;
 }
 async function handleImageUpload(type,files){
-  if(!creatorOnly())return; if(!files||!files.length)return;
+  if(!adminAllowed())return; if(!files||!files.length)return;
   const m=loadMedia();
   if(!Array.isArray(m[type])) m[type]=m[type]?[m[type]]:[];
   const room=10-m[type].length;
@@ -1656,10 +1675,10 @@ async function handleImageUpload(type,files){
   }catch(e){showToast("❌ آپلود عکس ناموفق بود");}
   finally{setTimeout(()=>{box.style.display="none";box.innerHTML=""},500);}
 }
-async function deleteMedia(type,id){if(!creatorOnly())return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;await saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
+async function deleteMedia(type,id){if(!adminAllowed())return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;await saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
 function mediaCard(item,type){
   if(!item)return `<div class="image-placeholder compact-placeholder">📷 به زودی</div>`;
-  const deleteBtn=isPrimaryAdmin()?`<button class="mini-btn danger media-delete" onclick="event.stopPropagation();deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
+  const deleteBtn=isAdmin()?`<button class="mini-btn danger media-delete" onclick="event.stopPropagation();deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
   return `<div class="media-card"><span class="zoom media-zoom">🔍 بزرگنمایی</span><img src="${item.src}" alt="${escapeHtml(item.name||"تصویر")}" onclick="openLightboxSrc('${item.src}')">${deleteBtn}<div class="media-caption">${escapeHtml(item.name||"تصویر")}</div></div>`;
 }
 function renderMedia(){
@@ -1667,13 +1686,13 @@ function renderMedia(){
   const ids={tournament:"uploadedTournamentMedia",teamBracket:"teamBracketMedia",standings:"standingsMedia"};
   Object.entries(ids).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.innerHTML=m[k].length?m[k].map(x=>mediaCard(x,k)).join(""):`<div class="image-placeholder compact-placeholder">📷 به زودی</div>`});
   const am=document.getElementById("adminMedia");if(am)am.innerHTML=["tournament","teamBracket","standings"].map(k=>`<div><div class="muted" style="margin:8px 0">${k==="tournament"?"🔥 فضای تورنومنت":k==="teamBracket"?"👥 تیم بندی":"🏆 جدول بندی"}</div><div class="media-grid">${m[k].map(x=>mediaCard(x,k)).join("")||`<div class="image-placeholder compact-placeholder">📷 به زودی</div>`}</div></div>`).join("");
-  const uploadRow=document.querySelector(".upload-row");if(uploadRow)uploadRow.style.display=isPrimaryAdmin()?"flex":"none";
-  const note=document.getElementById("uploadOnlyCreatorNote");if(note)note.style.display=isAdmin()&&!isPrimaryAdmin()?"block":"none";
+  const uploadRow=document.querySelector(".upload-row");if(uploadRow)uploadRow.style.display=isAdmin()?"flex":"none";
+  const note=document.getElementById("uploadOnlyCreatorNote");if(note)note.style.display="none";
 }
 function loadWinners(){try{const x=JSON.parse(localStorage.getItem(WINNERS_KEY)||"[]");return Array.isArray(x)?x:[];}catch(e){return [];}}
 function saveWinners(x){localStorage.setItem(WINNERS_KEY,JSON.stringify(x));sharedSet("winners",x);}
 function addWinner(){
-  if(!creatorOnly())return;
+  if(!adminAllowed())return;
   const name=document.getElementById("winnerNameInput").value.trim();
   const rank=Math.max(1,parseInt(document.getElementById("winnerRankInput").value)||1);
   const wins=Math.max(0,parseInt(document.getElementById("winnerWinsInput").value)||0);
@@ -1719,7 +1738,7 @@ function loadRules(){
 }
 function saveRules(x){localStorage.setItem(RULES_KEY,JSON.stringify(x));sharedSet("rules",x);}
 function addRule(){
-  if(!creatorOnly())return;
+  if(!adminAllowed())return;
   const input=document.getElementById("newRuleInput");
   const text=(input.value||"").trim();
   if(!text){showToast("⚠️ متن قانون را وارد کنید");return;}
@@ -1727,11 +1746,11 @@ function addRule(){
   input.value="";renderRules();showToast("✅ قانون اضافه شد");
 }
 function removeRule(i){
-  if(!creatorOnly())return;
+  if(!adminAllowed())return;
   const x=loadRules();x.splice(i,1);saveRules(x);renderRules();
 }
 function resetRules(){
-  if(!creatorOnly())return;
+  if(!adminAllowed())return;
   saveRules(DEFAULT_RULES.slice());renderRules();showToast("↩️ قوانین بازنشانی شدند");
 }
 function renderRules(){
@@ -1740,7 +1759,7 @@ function renderRules(){
   if(adm && !isEditingInside(adm))adm.innerHTML=x.map((r,i)=>`<div class="rule" style="display:flex;align-items:center;gap:8px"><div class="icon">${r.icon}</div><div style="flex:1">${r.text}</div>${admin?`<button class="mini-btn danger" onclick="removeRule(${i})">حذف</button>`:""}</div>`).join("");
 }
 function deleteWinner(id){
-  if(!creatorOnly())return; saveWinners(loadWinners().filter(x=>x.id!==id));renderWinners();
+  if(!adminAllowed())return; saveWinners(loadWinners().filter(x=>x.id!==id));renderWinners();
 }
 function renderWinners(){
   const x=loadWinners().sort((a,b)=>a.rank-b.rank), pub=document.getElementById("winnersPublic"), adm=document.getElementById("adminWinners");
@@ -1748,7 +1767,7 @@ function renderWinners(){
   if(adm && !isEditingInside(adm))adm.innerHTML=x.map(w=>`<div class="winner-row"><input value="${escapeHtml(w.name)}" onchange="updateWinner('${w.id}','name',this.value)"><input type="number" min="1" value="${w.rank}" onchange="updateWinner('${w.id}','rank',this.value)"><input type="number" min="0" value="${w.wins}" onchange="updateWinner('${w.id}','wins',this.value)"><button class="mini-btn danger" onclick="deleteWinner('${w.id}')">حذف</button></div>`).join("");
 }
 function updateWinner(id,key,val){
-  if(!creatorOnly())return;const x=loadWinners(),w=x.find(a=>a.id===id);if(!w)return;
+  if(!adminAllowed())return;const x=loadWinners(),w=x.find(a=>a.id===id);if(!w)return;
   w[key]=key==="name"?String(val).trim():Math.max(key==="rank"?1:0,parseInt(val)||0);saveWinners(x);renderWinners();
 }
 function presenceName(){
@@ -1785,25 +1804,25 @@ setInterval(renderUsers,5000);
 function loadPlayerAccounts(){try{const x=JSON.parse(localStorage.getItem(PLAYER_ACCOUNTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
 function savePlayerAccounts(x){localStorage.setItem(PLAYER_ACCOUNTS_KEY,JSON.stringify(x));sharedSet("playerAccounts",x);}
 function currentPlayer(){const id=sessionStorage.getItem(PLAYER_SESSION_KEY);return loadPlayerAccounts().find(x=>x.id===id&&x.active!==false)||null}
-function addPlayerAccount(){if(!creatorOnly())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();showToast("✅ اکانت بازیکن ساخته شد")}
-function updatePlayer(id,key,value){if(!creatorOnly())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;a[key]=String(value);savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard()}
-function deletePlayerAccount(id){if(!creatorOnly())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(confirm(`اکانت ${a.name||a.username} حذف شود؟`)){savePlayerAccounts(x.filter(q=>q.id!==id));renderDynamicContent();showToast("🗑️ اکانت بازیکن حذف شد")}}
+function addPlayerAccount(){if(!adminAllowed())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();showToast("✅ اکانت بازیکن ساخته شد")}
+function updatePlayer(id,key,value){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;a[key]=String(value);savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard()}
+function deletePlayerAccount(id){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(confirm(`اکانت ${a.name||a.username} حذف شود؟`)){savePlayerAccounts(x.filter(q=>q.id!==id));renderDynamicContent();showToast("🗑️ اکانت بازیکن حذف شد")}}
 function renderPlayerDashboard(){const d=document.getElementById("playerDashboard");if(!d)return;const a=currentPlayer();if(getRole()!=="player"||!a){d.classList.remove("show");return}d.classList.add("show");document.getElementById("playerWelcome").textContent=`🎮 ${a.name||a.username}`;document.getElementById("playerProgress").textContent=a.progress||"—";document.getElementById("playerGames").textContent=a.games||"0";document.getElementById("playerTeam").textContent=a.team||"—";document.getElementById("playerTurn").textContent=a.turn||"—";document.getElementById("playerNote").textContent=a.note||"هنوز اطلاعاتی از طرف سازنده ثبت نشده است."}
 
 /* ===== Notice / News / Accounts / Custom boxes ===== */
 function loadNotice(){return localStorage.getItem(NOTICE_KEY)||""}
-function saveTodayNotice(){if(!creatorOnly())return;const v=(document.getElementById("todayNoticeInput")?.value||"").trim();localStorage.setItem(NOTICE_KEY,v);sharedSet("notice",v);renderDynamicContent();showToast("✅ اطلاع رسانی ذخیره شد")}
+function saveTodayNotice(){if(!adminAllowed())return;const v=(document.getElementById("todayNoticeInput")?.value||"").trim();localStorage.setItem(NOTICE_KEY,v);sharedSet("notice",v);renderDynamicContent();showToast("✅ اطلاع رسانی ذخیره شد")}
 function loadNews(){try{const x=JSON.parse(localStorage.getItem(NEWS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
 function saveNews(x){localStorage.setItem(NEWS_KEY,JSON.stringify(x));sharedSet("news",x);}
-function addNews(){if(!creatorOnly())return;const title=(document.getElementById("newsTitleInput").value||"").trim(),body=(document.getElementById("newsBodyInput").value||"").trim();if(!title&&!body){showToast("⚠️ عنوان یا متن خبر را وارد کنید");return}const x=loadNews();x.unshift({id:Date.now()+"",title,body,date:new Date().toLocaleDateString("fa-IR")});saveNews(x);document.getElementById("newsTitleInput").value="";document.getElementById("newsBodyInput").value="";renderDynamicContent();showToast("📰 خبر اضافه شد")}
-function deleteNews(id){if(!creatorOnly())return;saveNews(loadNews().filter(x=>x.id!==id));renderDynamicContent()}
+function addNews(){if(!adminAllowed())return;const title=(document.getElementById("newsTitleInput").value||"").trim(),body=(document.getElementById("newsBodyInput").value||"").trim();if(!title&&!body){showToast("⚠️ عنوان یا متن خبر را وارد کنید");return}const x=loadNews();x.unshift({id:Date.now()+"",title,body,date:new Date().toLocaleDateString("fa-IR")});saveNews(x);document.getElementById("newsTitleInput").value="";document.getElementById("newsBodyInput").value="";renderDynamicContent();showToast("📰 خبر اضافه شد")}
+function deleteNews(id){if(!adminAllowed())return;saveNews(loadNews().filter(x=>x.id!==id));renderDynamicContent()}
 function openNewsPage(){const page=document.getElementById("newsPage");if(page){page.classList.add("show");renderDynamicContent()}}
 function closeNewsPage(){document.getElementById("newsPage")?.classList.remove("show")}
 function loadExtraBoxes(){try{const x=JSON.parse(localStorage.getItem(EXTRA_BOXES_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
 function saveExtraBoxes(x){localStorage.setItem(EXTRA_BOXES_KEY,JSON.stringify(x));sharedSet("extraBoxes",x);}
-function addExtraBox(){if(!creatorOnly())return;const t=(document.getElementById("extraBoxTitleInput").value||"").trim();if(!t){showToast("⚠️ نام باکس را وارد کنید");return}const x=loadExtraBoxes();x.push({id:Date.now()+"",title:t,body:""});saveExtraBoxes(x);document.getElementById("extraBoxTitleInput").value="";renderDynamicContent();showToast("➕ باکس اضافه شد")}
-function updateExtraBox(id,v){if(!creatorOnly())return;const x=loadExtraBoxes(),b=x.find(a=>a.id===id);if(!b)return;b.body=v;saveExtraBoxes(x);renderDynamicContent()}
-function deleteExtraBox(id){if(!creatorOnly())return;saveExtraBoxes(loadExtraBoxes().filter(x=>x.id!==id));renderDynamicContent()}
+function addExtraBox(){if(!adminAllowed())return;const t=(document.getElementById("extraBoxTitleInput").value||"").trim();if(!t){showToast("⚠️ نام باکس را وارد کنید");return}const x=loadExtraBoxes();x.push({id:Date.now()+"",title:t,body:""});saveExtraBoxes(x);document.getElementById("extraBoxTitleInput").value="";renderDynamicContent();showToast("➕ باکس اضافه شد")}
+function updateExtraBox(id,v){if(!adminAllowed())return;const x=loadExtraBoxes(),b=x.find(a=>a.id===id);if(!b)return;b.body=v;saveExtraBoxes(x);renderDynamicContent()}
+function deleteExtraBox(id){if(!adminAllowed())return;saveExtraBoxes(loadExtraBoxes().filter(x=>x.id!==id));renderDynamicContent()}
 function renderDynamicContent(){
  const n=loadNotice(), pub=document.getElementById("todayNoticePublic");if(pub){pub.textContent=n||"اطلاع رسانی امروز به زودی";pub.classList.toggle("compact-empty",!n)}
  const ni=document.getElementById("todayNoticeInput");if(ni && document.activeElement!==ni)ni.value=n;
@@ -1843,6 +1862,7 @@ function refreshAllFromStorage(){
   tournamentConfig=loadConfig();
   renderTeams(); renderAdminTeams(); renderScoreboard(); renderRules(); renderMedia(); renderWinners();
   renderDynamicContent(); renderPlayerDashboard(); renderUsers(); updateTimerLabels();
+  document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isAdmin()?"block":"none");
   restoreLegacyMedia();
   if(isAdmin() && document.getElementById("adminPanel")?.classList.contains("show")) loadConfigToForm();
 }
