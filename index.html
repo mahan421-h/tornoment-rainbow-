@@ -563,12 +563,29 @@
   .player-stat small{display:block;color:var(--muted);margin-bottom:6px;font-size:12px}
   .player-stat strong{font-size:16px;overflow-wrap:anywhere}
   .player-note{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.02);min-height:auto;white-space:pre-wrap}
+  .log-row{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
+  .log-row:last-child{border-bottom:none}
+  .player-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .badge-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--gold);background:var(--gold-glow);font-size:.85rem;font-weight:700}
+  .player-changepass{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .player-changepass input{flex:1;min-width:160px;border:1px solid var(--line-strong);background:#07090d;color:var(--text);border-radius:12px;padding:10px 12px;font:inherit}
   @media(max-width:650px){.player-grid{grid-template-columns:repeat(2,1fr)}}
 
   /* ===== نمودار بازی‌های بازیکن در پنل سازنده ===== */
   .player-admin-row{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:rgba(255,255,255,.025)}
   .player-admin-row input,.player-admin-row textarea{width:100%;border:1px solid var(--line-strong);background:#07090d;color:var(--text);border-radius:12px;padding:10px 12px;font:inherit}
   .player-chart-bar{position:relative;height:26px;border-radius:99px;background:#ffffff10;overflow:hidden;display:flex;align-items:center}
+
+  .player-teammate-box{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.02);font-size:14px}
+  .player-teammate-box.compact-empty{color:var(--muted);font-size:13px}
+  .player-results-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .player-results-actions small{color:var(--muted)}
+  .player-row-footer{display:flex;gap:8px;justify-content:flex-end}
+  .player-admin-row.player-inactive{opacity:.55}
+  .player-history-admin{display:flex;flex-wrap:wrap;gap:6px}
+  .hist-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:99px;border:1px solid var(--line-strong);background:#ffffff08}
+  .hist-chip.win{color:var(--green)} .hist-chip.loss{color:#ff7c87}
+  .hist-chip button{border:none;background:transparent;color:inherit;cursor:pointer;font-size:11px;padding:0}
   .player-chart-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:inherit;transition:width .4s ease}
   .player-chart-bar span{position:relative;z-index:1;margin:0 auto;font-size:12px;font-weight:700}
 
@@ -586,6 +603,7 @@
   .team-chat-box{border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-align:center;background:linear-gradient(145deg,rgba(22,140,255,.06),rgba(167,108,255,.05))}
   .team-chat-box p{color:var(--muted);margin-bottom:12px;font-size:13px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="login-overlay" id="loginOverlay">
@@ -631,6 +649,16 @@
     <div class="player-stat"><small>⏰ نوبت بعدی</small><strong id="playerTurn">—</strong></div>
   </div>
   <div class="player-note" id="playerNote">هنوز اطلاعاتی از طرف سازنده ثبت نشده است.</div>
+  <div class="player-teammate-box" id="playerTeammateBox">هنوز تیمی برای شما ثبت نشده است.</div>
+  <div class="player-history-box">
+    <small class="muted" style="display:block;margin:10px 0 6px">🗂️ تاریخچه بازی‌های شما</small>
+    <div id="playerHistoryBox"></div>
+  </div>
+  <div class="player-badges" id="playerBadges"></div>
+  <div class="player-changepass">
+    <input id="playerNewPass" type="password" placeholder="رمز عبور جدید">
+    <button class="mini-btn" onclick="playerChangePassword()">🔑 تغییر رمز عبور</button>
+  </div>
 </div>
 
 <div class="particles" id="particles"></div>
@@ -814,6 +842,7 @@
         <div class="actions" style="margin-top:12px">
           <button class="btn primary" onclick="saveAdminTeams()">💾 ذخیره تغییرات</button>
           <button class="btn" onclick="resetTeams()">↩️ بازنشانی تیم‌های اصلی</button>
+          <button class="btn" onclick="autoDrawTeams()">🎲 قرعه‌کشی خودکار تیم‌ها از روی بازیکنان</button>
         </div>
       </div>
 
@@ -856,6 +885,15 @@
       </div>
       <div class="upload-box creator-only-box" id="playersBox">
         <h4 onclick="toggleSection(this)">🎮 مدیریت اکانت‌های بازیکنان <span class="chev">›</span></h4>
+        <div class="muted" id="playersStats" style="margin-bottom:8px"></div>
+        <div class="admin-grid" style="margin-bottom:8px">
+          <input id="playerSearchInput" placeholder="🔍 جستجو در نام یا نام کاربری..." oninput="renderDynamicContent()">
+          <button class="btn" onclick="togglePlayersCompact()">🔀 نمایش فشرده/کامل</button>
+          <button class="btn" onclick="exportPlayersCsv()">📤 خروجی CSV بازیکنان</button>
+          <button class="btn" onclick="exportLeaderboardCsv()">📤 خروجی CSV لیدربرد</button>
+          <button class="btn" onclick="exportPlayersXlsx()">📊 خروجی اکسل بازیکنان</button>
+          <button class="btn" onclick="exportLeaderboardXlsx()">📊 خروجی اکسل لیدربرد</button>
+        </div>
         <div id="playersList"></div>
         <div class="admin-grid">
           <input id="newPlayerUser" placeholder="نام کاربری بازیکن">
@@ -865,6 +903,10 @@
           <button class="btn primary" onclick="addPlayerAccount()">➕ ساخت اکانت بازیکن</button>
         </div>
         <div class="muted">این بخش فقط برای سازنده است. سازنده برای هر بازیکن می‌تواند نام، شماره تلفن، نام بازی، لول، پیشرفت، تعداد بازی‌های انجام‌شده (که به‌صورت نمودار نمایش داده می‌شود)، تیم، نوبت بعدی و لینک گفتگوی اختصاصی را به‌صورت اختیاری ثبت کند. اگر لینک گفتگوی اختصاصی برای بازیکنی ثبت نشود، لینک عمومی گفتگوی تیم‌ها به او نشان داده می‌شود.</div>
+        <div class="admin-grid" style="margin-top:10px">
+          <textarea id="bulkPlayersInput" rows="3" placeholder="افزودن گروهی — هر خط: نام‌کاربری,رمز,نام (مثال: ali,1234,علی)"></textarea>
+          <button class="btn primary" onclick="bulkAddPlayers()">➕ افزودن گروهی</button>
+        </div>
       </div>
       <div class="upload-box owner-only" id="leaderboardBox">
         <h4 onclick="toggleSection(this)">🏅 مدیریت لیدربرد <span class="chev">›</span></h4>
@@ -883,6 +925,11 @@
       <div class="upload-box">
         <h4 onclick="toggleSection(this)">👥 کاربران آنلاین <span class="chev">›</span></h4>
         <div id="adminUsers" class="user-list"></div>
+      </div>
+      <div class="upload-box owner-only" id="adminLogBox">
+        <h4 onclick="toggleSection(this)">📜 لاگ فعالیت ادمین <span class="chev">›</span></h4>
+        <div id="adminActivityLog" style="max-height:260px;overflow:auto"></div>
+        <div class="actions" style="margin-top:10px"><button class="btn" onclick="clearAdminLog()">🗑️ پاک کردن لاگ</button></div>
       </div>
       <div class="upload-box">
         <h4 onclick="toggleSection(this)">⚠️ ویرایش قوانین مسابقه <span class="chev">›</span></h4>
@@ -1076,9 +1123,10 @@ function loadTeams(){
   }catch(e){ return [...DEFAULT_TEAMS]; }
 }
 async function saveTeams(list){
-  const clean=list.map(s=>String(s).trim()).filter(Boolean).slice(0,16);
+  const seen=new Set();
+  const clean=list.map(s=>String(s).trim()).filter(Boolean).filter(s=>{const k=s.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,16);
   localStorage.setItem(TEAMS_KEY,JSON.stringify(clean));
-  renderTeams(); renderAdminTeams(); renderScoreboard();
+  renderTeams(); renderAdminTeams(); renderScoreboard(); renderDynamicContent();
   return await sharedSet("teams",clean);
 }
 function teamPlayers(team){ return team.split("+").map(s=>s.trim()).filter(Boolean); }
@@ -1087,13 +1135,15 @@ function initials(team){
 }
 function renderTeams(){
   const teams=loadTeams();
+  const topTeam=topTeamOfWeek();
   teamsEl.innerHTML="";
   if(!teams.length){teamsEl.innerHTML='<div class="dynamic-box compact-empty">تیم‌ها به زودی اعلام می‌شوند</div>';updateProgress();return;}
   teams.forEach((t,i)=>{
     const el=document.createElement("div");
     el.className="team";
     el.tabIndex=0;
-    el.innerHTML=`<div class="info-team"><div class="avatar">${initials(t)}</div><div class="teamname">${faNum(i+1).padStart(2,"۰")} — ${escapeHtml(t)}</div></div><div class="ready">آماده</div>`;
+    const crown=(topTeam && t===topTeam)?` <span title="تیم برتر هفته">🔥</span>`:"";
+    el.innerHTML=`<div class="info-team"><div class="avatar">${initials(t)}</div><div class="teamname">${faNum(i+1).padStart(2,"۰")} — ${escapeHtml(t)}${crown}</div></div><div class="ready">آماده</div>`;
     el.onclick=()=>openProfile(i);
     el.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")openProfile(i)};
     teamsEl.appendChild(el);
@@ -1178,8 +1228,39 @@ async function moveTeam(i,dir){
 }
 async function resetTeams(){
   if(!adminAllowed())return;
-  localStorage.removeItem(TEAMS_KEY); const ok=await sharedSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams();
+  localStorage.removeItem(TEAMS_KEY); const ok=await sharedSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams(); renderDynamicContent();
   cloudResultToast(ok,"↩️ تیم‌ها بازنشانی و همگام‌سازی شدند");
+}
+async function autoDrawTeams(){
+  if(!creatorOnly())return;
+  const players=loadPlayerAccounts().filter(a=>a.active!==false);
+  if(players.length<2){showToast("⚠️ حداقل ۲ بازیکن فعال لازم است");return}
+  if(!confirm("تیم‌های فعلی جایگزین می‌شوند و به‌صورت تصادفی از بین بازیکنان فعال تیم ساخته می‌شود. ادامه می‌دهید؟"))return;
+  const shuffled=players.slice().sort(()=>Math.random()-0.5);
+  const acc=loadPlayerAccounts();
+  const newTeams=[];
+  for(let i=0;i<shuffled.length;i+=2){
+    const p1=shuffled[i], p2=shuffled[i+1];
+    const n1=p1.name||p1.username, n2=p2?(p2.name||p2.username):null;
+    const teamName=n2?`${n1} + ${n2}`:`${n1} (تک نفره)`;
+    newTeams.push(teamName);
+    [p1,p2].forEach(p=>{if(p){const a=acc.find(x=>x.id===p.id);if(a)a.team=teamName;}});
+  }
+  savePlayerAccounts(acc);
+  await saveTeams(newTeams);
+  logAdminActivity(`قرعه‌کشی خودکار تیم‌ها انجام شد (${newTeams.length} تیم)`);
+  showToast("🎲 قرعه‌کشی تیم‌ها انجام شد");
+}
+function topTeamOfWeek(){
+  const teams=loadTeams();
+  const lb=loadLeaderboard();
+  let best=null;
+  teams.forEach(t=>{
+    const row=lb.find(r=>String(r.name).trim()===String(t).trim());
+    const wins=row?parseInt(row.wins)||0:0;
+    if(wins>0 && (!best||wins>best.wins)) best={team:t,wins};
+  });
+  return best?best.team:null;
 }
 
 /* ===== Profiles ===== */
@@ -1876,6 +1957,26 @@ async function pushPresenceToCloud(me){
   }catch(e){}
 }
 function roleSessionId(){let id=sessionStorage.getItem("rainbow_presence_id");if(!id){id=Math.random().toString(36).slice(2)+Date.now();sessionStorage.setItem("rainbow_presence_id",id)}return id}
+const ADMIN_LOG_KEY="rainbow_admin_log_v1";
+function logAdminActivity(text){
+  try{
+    const list=JSON.parse(localStorage.getItem(ADMIN_LOG_KEY)||"[]");
+    list.unshift({text,by:presenceName()||getRole(),at:Date.now()});
+    const trimmed=list.slice(0,100);
+    localStorage.setItem(ADMIN_LOG_KEY,JSON.stringify(trimmed));
+    sharedSet("adminLog",trimmed);
+    renderAdminLog();
+  }catch(e){}
+}
+function renderAdminLog(){
+  const el=document.getElementById("adminActivityLog");if(!el)return;
+  let list=[];try{list=JSON.parse(localStorage.getItem(ADMIN_LOG_KEY)||"[]")}catch(e){}
+  el.innerHTML=list.length?list.map(x=>`<div class="log-row"><span class="muted">${new Date(x.at).toLocaleString("fa-IR")}</span> — <strong>${escapeHtml(x.by||"")}</strong>: ${escapeHtml(x.text)}</div>`).join(""):`<div class="muted">هنوز فعالیتی ثبت نشده است.</div>`;
+}
+function clearAdminLog(){
+  if(!creatorOnly())return;
+  localStorage.setItem(ADMIN_LOG_KEY,"[]");sharedSet("adminLog",[]);renderAdminLog();showToast("🗑️ لاگ فعالیت پاک شد");
+}
 function renderUsers(){
   const el=document.getElementById("adminUsers");if(!el)return;
   let users=[];try{users=JSON.parse(localStorage.getItem(PRESENCE_KEY)||"[]")}catch(e){}
@@ -1903,10 +2004,176 @@ function loadPlayerAccounts(){
 }
 function savePlayerAccounts(x){localStorage.setItem(PLAYER_ACCOUNTS_KEY,JSON.stringify(x));sharedSet("playerAccounts",x);}
 function currentPlayer(){const id=sessionStorage.getItem(PLAYER_SESSION_KEY);return loadPlayerAccounts().find(x=>x.id===id&&x.active!==false)||null}
-function addPlayerAccount(){if(!adminAllowed())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim(),cl=(document.getElementById("newPlayerChatLink")?.value||"").trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:cl,active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName","newPlayerChatLink"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();showToast("✅ اکانت بازیکن ساخته شد")}
-function updatePlayer(id,key,value){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;a[key]=String(value);savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard()}
-function deletePlayerAccount(id){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(confirm(`اکانت ${a.name||a.username} حذف شود؟`)){savePlayerAccounts(x.filter(q=>q.id!==id));renderDynamicContent();showToast("🗑️ اکانت بازیکن حذف شد")}}
-function renderPlayerDashboard(){const d=document.getElementById("playerDashboard");if(!d)return;const a=currentPlayer();if(getRole()!=="player"||!a){d.classList.remove("show");return}d.classList.add("show");document.getElementById("playerWelcome").textContent=`🎮 ${a.name||a.username}`;document.getElementById("playerProgress").textContent=a.progress||"—";document.getElementById("playerGames").textContent=a.games||"0";document.getElementById("playerTeam").textContent=a.team||"—";document.getElementById("playerTurn").textContent=a.turn||"—";document.getElementById("playerNote").textContent=a.note||"هنوز اطلاعاتی از طرف سازنده ثبت نشده است."}
+function addPlayerAccount(){if(!adminAllowed())return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim(),cl=(document.getElementById("newPlayerChatLink")?.value||"").trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:cl,active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName","newPlayerChatLink"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();logAdminActivity(`اکانت بازیکن جدید ساخته شد: ${u}`);showToast("✅ اکانت بازیکن ساخته شد")}
+function updatePlayer(id,key,value){
+  if(!adminAllowed())return;
+  const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;
+  if(key==="team" && value!=="—"){
+    const count=x.filter(p=>p.id!==id && p.team===value).length;
+    if(count>=2){showToast("⚠️ این تیم قبلاً ۲ بازیکن دارد — ابتدا یکی را از این تیم خارج کنید");renderDynamicContent();return;}
+  }
+  a[key]=String(value);savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard();
+}
+function deletePlayerAccount(id){if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(confirm(`اکانت ${a.name||a.username} حذف شود؟`)){savePlayerAccounts(x.filter(q=>q.id!==id));renderDynamicContent();logAdminActivity(`اکانت بازیکن حذف شد: ${a.username}`);showToast("🗑️ اکانت بازیکن حذف شد")}}
+/* ===== نتایج بازی‌های هر بازیکن (برد/باخت + تاریخ) ===== */
+function playerHistory(a){return Array.isArray(a?.history)?a.history:[];}
+function playerHistoryStats(a){const h=playerHistory(a);let win=0,loss=0;h.forEach(x=>{if(x.result==="win")win++;else if(x.result==="loss")loss++;});return {win,loss};}
+function addPlayerResult(id,result){
+  if(!adminAllowed())return;
+  const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;
+  if(!Array.isArray(a.history))a.history=[];
+  a.history.unshift({result,date:getPersianDate(),at:Date.now()});
+  a.games=String(a.history.length);
+  savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard();
+  logAdminActivity(`نتیجه ${result==="win"?"برد":"باخت"} برای بازیکن ${a.username} ثبت شد`);
+  showToast(result==="win"?"✅ برد ثبت شد":"❌ باخت ثبت شد");
+}
+function deletePlayerResult(id,idx){
+  if(!adminAllowed())return;
+  const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;
+  const h=playerHistory(a);h.splice(idx,1);a.history=h;a.games=String(h.length);
+  savePlayerAccounts(x);renderDynamicContent();if(currentPlayer()?.id===id)renderPlayerDashboard();
+  logAdminActivity(`یک نتیجه بازی از ${a.username} حذف شد`);
+}
+/* ===== جستجو/فیلتر بازیکنان ===== */
+function filterPlayersList(list){
+  const q=(document.getElementById("playerSearchInput")?.value||"").trim().toLowerCase();
+  if(!q)return list;
+  return list.filter(a=>[a.username,a.name,a.team,a.gameName,a.phone].some(v=>String(v||"").toLowerCase().includes(q)));
+}
+/* ===== اعلان تغییر تیم/نوبت ===== */
+const PLAYER_NOTIFY_SEEN_KEY="rainbow_player_notify_seen_v1";
+function loadPlayerNotifySeen(){try{return JSON.parse(localStorage.getItem(PLAYER_NOTIFY_SEEN_KEY)||"{}")||{};}catch(e){return {};}}
+function savePlayerNotifySeen(x){localStorage.setItem(PLAYER_NOTIFY_SEEN_KEY,JSON.stringify(x));}
+function checkPlayerAssignmentChange(a){
+  if(!a)return;const seen=loadPlayerNotifySeen(),prev=seen[a.id],cur={team:a.team||"—",turn:a.turn||"—"};
+  if(prev){
+    if(prev.team!==cur.team){showToast("👥 تیم شما به‌روزرسانی شد: "+cur.team);sendNotification("👥 تغییر تیم","تیم شما الان: "+cur.team);}
+    if(prev.turn!==cur.turn){showToast("⏰ نوبت شما به‌روزرسانی شد: "+cur.turn);sendNotification("⏰ تغییر نوبت بازی","نوبت جدید شما: "+cur.turn);}
+  }
+  seen[a.id]=cur;savePlayerNotifySeen(seen);
+}
+
+function togglePlayerActive(id){
+  if(!adminAllowed())return;const x=loadPlayerAccounts(),a=x.find(q=>q.id===id);if(!a)return;
+  a.active=a.active===false;savePlayerAccounts(x);renderDynamicContent();
+  logAdminActivity(`اکانت ${a.username} ${a.active?"فعال":"غیرفعال"} شد`);
+  showToast(a.active?"✅ اکانت فعال شد":"⏸️ اکانت غیرفعال شد");
+}
+function togglePlayersCompact(){
+  const cur=localStorage.getItem("rainbow_players_compact_v1")==="1";
+  localStorage.setItem("rainbow_players_compact_v1",cur?"0":"1");
+  renderDynamicContent();
+}
+function csvEscape(v){const s=String(v==null?"":v).replace(/"/g,'""');return /[",\n]/.test(s)?`"${s}"`:s;}
+function downloadCsv(filename,rows){
+  const csv="\uFEFF"+rows.map(r=>r.map(csvEscape).join(",")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();document.body.removeChild(link);
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function exportPlayersCsv(){
+  if(!adminAllowed())return;
+  const rows=[["نام کاربری","نام","شماره تلفن","تیم","پیشرفت","بازی‌ها","نوبت","فعال"]];
+  loadPlayerAccounts().forEach(a=>rows.push([a.username,a.name||"",a.phone||"",a.team||"",a.progress||"",a.games||"0",a.turn||"",a.active===false?"غیرفعال":"فعال"]));
+  downloadCsv("players.csv",rows);showToast("📤 خروجی CSV بازیکنان آماده شد");
+}
+function exportLeaderboardCsv(){
+  if(!adminAllowed())return;
+  const rows=[["نام","بازی‌ها","برد","باخت"]];
+  loadLeaderboard().forEach(r=>rows.push([r.name,r.games||"0",r.wins||"0",r.losses||"0"]));
+  downloadCsv("leaderboard.csv",rows);showToast("📤 خروجی CSV لیدربرد آماده شد");
+}
+function exportPlayersXlsx(){
+  if(!adminAllowed())return;
+  if(!window.XLSX){showToast("⚠️ کتابخانه اکسل بارگذاری نشد، اینترنت را بررسی کنید");return}
+  const rows=[["نام کاربری","نام","شماره تلفن","تیم","پیشرفت","بازی‌ها","نوبت","فعال"]];
+  loadPlayerAccounts().forEach(a=>rows.push([a.username,a.name||"",a.phone||"",a.team||"",a.progress||"",a.games||"0",a.turn||"",a.active===false?"غیرفعال":"فعال"]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Players");
+  XLSX.writeFile(wb,"players.xlsx");showToast("📊 خروجی اکسل بازیکنان آماده شد");
+}
+function exportLeaderboardXlsx(){
+  if(!adminAllowed())return;
+  if(!window.XLSX){showToast("⚠️ کتابخانه اکسل بارگذاری نشد، اینترنت را بررسی کنید");return}
+  const rows=[["نام","بازی‌ها","برد","باخت"]];
+  loadLeaderboard().forEach(r=>rows.push([r.name,r.games||"0",r.wins||"0",r.losses||"0"]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Leaderboard");
+  XLSX.writeFile(wb,"leaderboard.xlsx");showToast("📊 خروجی اکسل لیدربرد آماده شد");
+}
+function bulkAddPlayers(){
+  if(!adminAllowed())return;
+  const raw=(document.getElementById("bulkPlayersInput")?.value||"").trim();
+  if(!raw){showToast("⚠️ حداقل یک خط وارد کنید");return}
+  const lines=raw.split("\n").map(l=>l.trim()).filter(Boolean);
+  const x=loadPlayerAccounts();
+  const existingUsers=new Set([...x.map(a=>a.username),...loadAccounts().map(a=>a.username)]);
+  let added=0,skipped=0;
+  lines.forEach((line,i)=>{
+    const parts=line.split(",").map(p=>p.trim());
+    const u=parts[0],p=parts[1],n=parts[2]||u;
+    if(!u||!p||existingUsers.has(u)){skipped++;return}
+    x.push({id:"p-"+Date.now()+"-"+i,username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:"",active:true});
+    existingUsers.add(u);added++;
+  });
+  savePlayerAccounts(x);
+  document.getElementById("bulkPlayersInput").value="";
+  renderDynamicContent();
+  if(added)logAdminActivity(`افزودن گروهی: ${added} اکانت بازیکن جدید`);
+  showToast(`✅ ${added} اکانت اضافه شد${skipped?` — ${skipped} خط نامعتبر یا تکراری رد شد`:""}`);
+}
+function getTeammateInfo(a){
+  if(!a||!a.team||a.team==="—")return null;
+  const members=teamPlayers(a.team);
+  const selfNames=[String(a.name||"").trim().toLowerCase(),String(a.username||"").trim().toLowerCase()];
+  const others=members.filter(m=>!selfNames.includes(String(m).trim().toLowerCase()));
+  const scores=loadScores()[a.team]||{win:0,loss:0};
+  return {teammates:others,score:scores};
+}
+function renderPlayerDashboard(){
+  const d=document.getElementById("playerDashboard");if(!d)return;const a=currentPlayer();
+  if(getRole()!=="player"||!a){d.classList.remove("show");return}
+  d.classList.add("show");
+  document.getElementById("playerWelcome").textContent=`🎮 ${a.name||a.username}`;
+  document.getElementById("playerProgress").textContent=a.progress||"—";
+  document.getElementById("playerGames").textContent=a.games||"0";
+  document.getElementById("playerTeam").textContent=a.team||"—";
+  document.getElementById("playerTurn").textContent=a.turn||"—";
+  document.getElementById("playerNote").textContent=a.note||"هنوز اطلاعاتی از طرف سازنده ثبت نشده است.";
+  checkPlayerAssignmentChange(a);
+  const teamBox=document.getElementById("playerTeammateBox");
+  if(teamBox){
+    const info=getTeammateInfo(a);
+    if(!info || (!info.teammates.length && !info.score.win && !info.score.loss)){teamBox.classList.add("compact-empty");teamBox.innerHTML="هنوز تیمی برای شما ثبت نشده است.";}
+    else{teamBox.classList.remove("compact-empty");teamBox.innerHTML=`<div>👥 هم‌تیمی‌ت: <strong>${info.teammates.length?escapeHtml(info.teammates.join("، ")):"—"}</strong></div><div style="margin-top:6px">🏆 امتیاز مشترک تیم: <span class="score-win">${faNum(info.score.win||0)} برد</span> / <span class="score-loss">${faNum(info.score.loss||0)} باخت</span></div>`;}
+  }
+  const histBox=document.getElementById("playerHistoryBox");
+  if(histBox){const h=playerHistory(a);histBox.innerHTML=h.length?h.slice(0,15).map(x=>`<div class="score-row"><div class="name">${x.result==="win"?"✅ برد":"❌ باخت"}</div><div class="score-num">${escapeHtml(x.date||"")}</div></div>`).join(""):`<div class="muted">هنوز نتیجه‌ای برای شما ثبت نشده است.</div>`;}
+  renderPlayerBadges(a);
+}
+function renderPlayerBadges(a){
+  const el=document.getElementById("playerBadges");if(!el)return;
+  const g=parseInt(a.games)||0;
+  const badges=[];
+  if(g>=1)badges.push("🎮 اولین بازی");
+  if(g>=5)badges.push("🔥 ۵ بازی");
+  if(g>=10)badges.push("⭐ ۱۰ بازی");
+  if(g>=20)badges.push("👑 ۲۰ بازی");
+  const list=loadLeaderboard().slice().sort((x,y)=>(parseInt(y.wins)||0)-(parseInt(x.wins)||0));
+  const rank=list.findIndex(r=>r.name===(a.name||a.username));
+  if(rank===0 && list.length)badges.push("🏆 رتبه اول لیدربرد");
+  el.innerHTML=badges.length?badges.map(b=>`<span class="badge-chip">${b}</span>`).join(""):"";
+}
+function playerChangePassword(){
+  const a=currentPlayer();if(!a){showToast("⛔ ابتدا وارد شوید");return}
+  const np=(document.getElementById("playerNewPass")?.value||"").trim();
+  if(!np||np.length<3){showToast("⚠️ رمز عبور جدید را وارد کنید (حداقل ۳ کاراکتر)");return}
+  const x=loadPlayerAccounts();const acc=x.find(q=>q.id===a.id);if(!acc)return;
+  acc.password=np;savePlayerAccounts(x);
+  localStorage.setItem(PLAYER_REMEMBER_KEY,JSON.stringify({username:acc.username,password:acc.password}));
+  document.getElementById("playerNewPass").value="";
+  showToast("✅ رمز عبور شما تغییر کرد");
+}
 
 /* ===== Notice / News / Accounts / Custom boxes ===== */
 function loadNotice(){return localStorage.getItem(NOTICE_KEY)||""}
@@ -1971,7 +2238,7 @@ function renderLeaderboard(){
   const list=loadLeaderboard().slice().sort((a,b)=>(parseInt(b.wins)||0)-(parseInt(a.wins)||0));
   const pub=document.getElementById("leaderboardPublic");
   if(pub){
-    pub.innerHTML = list.length ? `<div class="leaderboard-wrap"><table class="leaderboard-table"><thead><tr><th>رتبه</th><th>نام</th><th>بازی‌ها</th><th>برد</th><th>باخت</th></tr></thead><tbody>${list.map((r,i)=>`<tr><td>${faNum(i+1)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.games||"0")}</td><td>${escapeHtml(r.wins||"0")}</td><td>${escapeHtml(r.losses||"0")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="dynamic-box compact-empty">لیدربرد به زودی</div>`;
+    pub.innerHTML = list.length ? `<div class="leaderboard-wrap"><table class="leaderboard-table"><thead><tr><th>رتبه</th><th>نام</th><th>بازی‌ها</th><th>برد</th><th>باخت</th></tr></thead><tbody>${list.map((r,i)=>`<tr><td>${i===0?"🥇":i===1?"🥈":i===2?"🥉":faNum(i+1)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.games||"0")}</td><td>${escapeHtml(r.wins||"0")}</td><td>${escapeHtml(r.losses||"0")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="dynamic-box compact-empty">لیدربرد به زودی</div>`;
   }
   const admin=document.getElementById("leaderboardAdminList");
   if(admin && !isEditingInside(admin)){
@@ -1987,11 +2254,26 @@ function renderDynamicContent(){
  const pl=document.getElementById("playersList");
  if(pl && !isEditingInside(pl)){
    const allPlayers=loadPlayerAccounts();
+   const q=(document.getElementById("playerSearchInput")?.value||"").trim().toLowerCase();
+   const players=filterPlayersList(allPlayers);
    const maxGames=Math.max(1,...allPlayers.map(a=>parseInt(a.games)||0));
-   pl.innerHTML=allPlayers.map(a=>{
-     const gnum=parseInt(a.games)||0, pct=Math.round(gnum/maxGames*100);
-     return `<div class="player-admin-row"><div class="player-name">🎮 ${escapeHtml(a.name||a.username)}</div><input value="${escapeHtml(a.username)}" onchange="updatePlayer('${a.id}','username',this.value)" placeholder="نام کاربری"><input type="password" value="${escapeHtml(a.password||"")}" onchange="updatePlayer('${a.id}','password',this.value)" placeholder="رمز"><input value="${escapeHtml(a.name||"")}" onchange="updatePlayer('${a.id}','name',this.value)" placeholder="نام بازیکن (اختیاری)"><input value="${escapeHtml(a.phone||"")}" onchange="updatePlayer('${a.id}','phone',this.value)" placeholder="شماره تلفن (اختیاری)"><input value="${escapeHtml(a.gameName||"")}" onchange="updatePlayer('${a.id}','gameName',this.value)" placeholder="نام داخل بازی (اختیاری)"><input value="${escapeHtml(a.level||"")}" onchange="updatePlayer('${a.id}','level',this.value)" placeholder="لول (اختیاری)"><input value="${escapeHtml(a.progress||"")}" onchange="updatePlayer('${a.id}','progress',this.value)" placeholder="پیشرفت، مثال ۳/۵ یا ۶۰٪"><input type="number" value="${escapeHtml(a.games||"")}" onchange="updatePlayer('${a.id}','games',this.value)" placeholder="تعداد بازی‌های انجام‌شده"><div class="player-chart-bar" title="نمودار بازی‌های انجام‌شده"><i style="width:${pct}%"></i><span>${gnum} بازی</span></div><input value="${escapeHtml(a.team||"")}" onchange="updatePlayer('${a.id}','team',this.value)" placeholder="تیم"><input value="${escapeHtml(a.turn||"")}" onchange="updatePlayer('${a.id}','turn',this.value)" placeholder="نوبت / ساعت"><textarea onchange="updatePlayer('${a.id}','note',this.value)" placeholder="توضیحات">${escapeHtml(a.note||"")}</textarea><input value="${escapeHtml(a.chatLink||"")}" onchange="updatePlayer('${a.id}','chatLink',this.value)" placeholder="لینک گفتگوی این بازیکن (اختیاری)"><button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️ حذف</button></div>`;
-   }).join("")||`<div class="muted">هنوز اکانت بازیکنی ساخته نشده است.</div>`;
+   const compact=localStorage.getItem("rainbow_players_compact_v1")==="1";
+   const statsEl=document.getElementById("playersStats");
+   if(statsEl){
+     let presence=[];try{presence=JSON.parse(localStorage.getItem(PRESENCE_KEY)||"[]")}catch(e){}
+     const now=Date.now();
+     const onlinePlayers=presence.filter(u=>u.role==="player"&&now-u.lastSeen<30000).length;
+     const activeCount=allPlayers.filter(a=>a.active!==false).length;
+     statsEl.innerHTML=`👥 کل بازیکنان: <strong>${allPlayers.length}</strong> &nbsp;|&nbsp; ✅ فعال: <strong>${activeCount}</strong> &nbsp;|&nbsp; 🟢 آنلاین الان: <strong>${onlinePlayers}</strong>`;
+   }
+   pl.innerHTML=players.map(a=>{
+     const gnum=parseInt(a.games)||0, pct=Math.round(gnum/maxGames*100), inactive=a.active===false;
+     const toggleBtn=`<button class="mini-btn" onclick="togglePlayerActive('${a.id}')">${inactive?"▶️ فعال‌سازی":"⏸️ غیرفعال‌سازی"}</button>`;
+     if(compact){
+       return `<div class="player-admin-row" style="flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px${inactive?";opacity:.55":""}"><div class="player-name" style="flex:1">🎮 ${escapeHtml(a.name||a.username)} ${inactive?"(غیرفعال)":""}</div><div class="muted">${escapeHtml(a.team||"—")}</div>${toggleBtn}<button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️</button></div>`;
+     }
+     return `<div class="player-admin-row"${inactive?" style=\"opacity:.6\"":""}><div class="player-name">🎮 ${escapeHtml(a.name||a.username)} ${inactive?"— غیرفعال":""}</div><input value="${escapeHtml(a.username)}" onchange="updatePlayer('${a.id}','username',this.value)" placeholder="نام کاربری"><input type="password" value="${escapeHtml(a.password||"")}" onchange="updatePlayer('${a.id}','password',this.value)" placeholder="رمز"><input value="${escapeHtml(a.name||"")}" onchange="updatePlayer('${a.id}','name',this.value)" placeholder="نام بازیکن (اختیاری)"><input value="${escapeHtml(a.phone||"")}" onchange="updatePlayer('${a.id}','phone',this.value)" placeholder="شماره تلفن (اختیاری)"><input value="${escapeHtml(a.gameName||"")}" onchange="updatePlayer('${a.id}','gameName',this.value)" placeholder="نام داخل بازی (اختیاری)"><input value="${escapeHtml(a.level||"")}" onchange="updatePlayer('${a.id}','level',this.value)" placeholder="لول (اختیاری)"><input value="${escapeHtml(a.progress||"")}" onchange="updatePlayer('${a.id}','progress',this.value)" placeholder="پیشرفت، مثال ۳/۵ یا ۶۰٪"><input type="number" value="${escapeHtml(a.games||"")}" onchange="updatePlayer('${a.id}','games',this.value)" placeholder="تعداد بازی‌های انجام‌شده"><div class="player-chart-bar" title="نمودار بازی‌های انجام‌شده"><i style="width:${pct}%"></i><span>${gnum} بازی</span></div><select onchange="updatePlayer('${a.id}','team',this.value)" aria-label="تیم"><option value="—" ${(!a.team||a.team==="—")?"selected":""}>— بدون تیم —</option>${loadTeams().map(t=>`<option value="${escapeHtml(t)}" ${a.team===t?"selected":""}>${escapeHtml(t)}</option>`).join("")}</select><input value="${escapeHtml(a.turn||"")}" onchange="updatePlayer('${a.id}','turn',this.value)" placeholder="نوبت / ساعت"><textarea onchange="updatePlayer('${a.id}','note',this.value)" placeholder="توضیحات (برای خود بازیکن نمایش داده می‌شود)">${escapeHtml(a.note||"")}</textarea><textarea onchange="updatePlayer('${a.id}','adminNote',this.value)" placeholder="یادداشت داخلی (فقط سازنده می‌بیند)">${escapeHtml(a.adminNote||"")}</textarea><input value="${escapeHtml(a.chatLink||"")}" onchange="updatePlayer('${a.id}','chatLink',this.value)" placeholder="لینک گفتگوی این بازیکن (اختیاری)"><div class="player-results-actions"><small>🎯 نتایج: ${faNum(playerHistoryStats(a).win)} برد / ${faNum(playerHistoryStats(a).loss)} باخت</small><button class="mini-btn" onclick="addPlayerResult('${a.id}','win')">➕ برد</button><button class="mini-btn" onclick="addPlayerResult('${a.id}','loss')">➕ باخت</button></div>${playerHistory(a).length?`<div class="player-history-admin">${playerHistory(a).slice(0,8).map((x,i)=>`<span class="hist-chip ${x.result}">${x.result==="win"?"✅":"❌"} ${escapeHtml(x.date||"")}<button onclick="deletePlayerResult('${a.id}',${i})" title="حذف">✕</button></span>`).join("")}</div>`:""}<div class="player-row-footer">${toggleBtn}<button class="mini-btn danger" onclick="deletePlayerAccount('${a.id}')">🗑️ حذف</button></div></div>`;
+   }).join("")||`<div class="muted">${q?"نتیجه‌ای برای این جستجو پیدا نشد.":"هنوز اکانت بازیکنی ساخته نشده است."}</div>`;
  }
  const eb=document.getElementById("extraBoxesAdmin");if(eb && !isEditingInside(eb))eb.innerHTML=loadExtraBoxes().map(b=>`<div class="extra-admin-row"><strong>${escapeHtml(b.title)}</strong><textarea rows="2" onchange="updateExtraBox('${b.id}',this.value)" placeholder="محتوای این باکس...">${escapeHtml(b.body)}</textarea><button class="mini-btn danger" onclick="deleteExtraBox('${b.id}')">حذف</button></div>`).join("");
  const pubExtra=document.getElementById("publicExtraBoxes");if(pubExtra)pubExtra.innerHTML=loadExtraBoxes().map(b=>`<div class="dynamic-box ${b.body?"":"compact-empty"}"><h3>${escapeHtml(b.title)}</h3><div>${escapeHtml(b.body||"به زودی")}</div></div>`).join("");
@@ -2000,9 +2282,9 @@ function renderDynamicContent(){
 function getAccountOnline(a){let users=[];try{users=JSON.parse(localStorage.getItem(PRESENCE_KEY)||"[]")}catch(e){}const u=users.find(x=>x.role===a.role);return !!u&&Date.now()-u.lastSeen<30000}
 function accountActionHtml(a){if(a.role==="admin"){return `<button class="mini-btn" onclick="changeOwnCredentials()">✏️ تغییر اطلاعات من</button>`}return `<button class="mini-btn danger" onclick="deleteAccount('${a.id}')">🗑️ حذف</button>`}
 function changeOwnCredentials(){if(!isPrimaryAdmin())return;const a=loadAccounts().find(x=>x.role==="admin");if(!a)return;const u=prompt("نام کاربری جدید:",a.username);if(u===null)return;const p=prompt("رمز عبور جدید:",a.password);if(p===null)return;if(!u.trim()||!p){showToast("⚠️ نام کاربری و رمز عبور نمی‌توانند خالی باشند");return}if(loadAccounts().some(x=>x.id!==a.id&&x.username===u.trim())){showToast("❌ این نام کاربری قبلاً وجود دارد");return}a.username=u.trim();a.password=p;saveAccounts(loadAccounts().map(x=>x.id===a.id?a:x));localStorage.setItem(REMEMBER_KEY,JSON.stringify({username:a.username,password:a.password}));renderDynamicContent();showToast("✅ اطلاعات سازنده تغییر کرد")}
-function addAccount(){if(!creatorOnly())return;const u=document.getElementById("newAccountUser").value.trim(),p=document.getElementById("newAccountPass").value;if(!u||!p){showToast("⚠️ نام کاربری و رمز عبور را وارد کنید");return}const x=loadAccounts();if(x.some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:Date.now()+"",username:u,password:p,role:"admin2",name:"اکانت جدید",active:true});saveAccounts(x);document.getElementById("newAccountUser").value="";document.getElementById("newAccountPass").value="";renderDynamicContent();showToast("✅ اکانت ساخته شد")}
+function addAccount(){if(!creatorOnly())return;const u=document.getElementById("newAccountUser").value.trim(),p=document.getElementById("newAccountPass").value;if(!u||!p){showToast("⚠️ نام کاربری و رمز عبور را وارد کنید");return}const x=loadAccounts();if(x.some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:Date.now()+"",username:u,password:p,role:"admin2",name:"اکانت جدید",active:true});saveAccounts(x);document.getElementById("newAccountUser").value="";document.getElementById("newAccountPass").value="";renderDynamicContent();logAdminActivity(`اکانت ادمین جدید ساخته شد: ${u}`);showToast("✅ اکانت ساخته شد")}
 function updateAccount(id,key,v){if(!creatorOnly())return;const x=loadAccounts(),a=x.find(q=>q.id===id);if(!a)return;if(key==="username"&&!String(v).trim())return;a[key]=String(v).trim();saveAccounts(x);if(a.role===getRole()&&key==="password"){localStorage.setItem(REMEMBER_KEY,JSON.stringify({username:a.username,password:a.password}))}showToast("✅ اکانت به‌روزرسانی شد")}
-function deleteAccount(id){if(!creatorOnly())return;const x=loadAccounts(),a=x.find(q=>q.id===id);if(!a||a.role==="admin"){showToast("⛔ شما مجوز این کار را ندارید");return}saveAccounts(x.filter(q=>q.id!==id));if(a.role==="admin2"){localStorage.setItem(ADMIN2_ACTIVE_KEY,"0");sharedSet("admin2Active","0");}renderDynamicContent();renderUsers();showToast("🗑️ اکانت حذف شد")}
+function deleteAccount(id){if(!creatorOnly())return;const x=loadAccounts(),a=x.find(q=>q.id===id);if(!a||a.role==="admin"){showToast("⛔ شما مجوز این کار را ندارید");return}saveAccounts(x.filter(q=>q.id!==id));if(a.role==="admin2"){localStorage.setItem(ADMIN2_ACTIVE_KEY,"0");sharedSet("admin2Active","0");}renderDynamicContent();renderUsers();logAdminActivity(`اکانت حذف شد: ${a.username}`);showToast("🗑️ اکانت حذف شد")}
 
 /* ===== Cloud Sync orchestration (باید بعد از تعریف تمام کلیدها باشد) ===== */
 const CLOUD_KEY_MAP={
@@ -2010,7 +2292,8 @@ const CLOUD_KEY_MAP={
   winners:WINNERS_KEY, accounts:ACCOUNTS_KEY, notice:NOTICE_KEY, news:NEWS_KEY,
   extraBoxes:EXTRA_BOXES_KEY, playerAccounts:PLAYER_ACCOUNTS_KEY, rules:RULES_KEY,
   admin2Active:ADMIN2_ACTIVE_KEY, hiddenLegacyMedia:"rainbow_hidden_legacy_media_v1",
-  ringEvent:RING_EVENT_KEY, teamChatLink:TEAMCHAT_KEY, leaderboard:LEADERBOARD_KEY
+  ringEvent:RING_EVENT_KEY, teamChatLink:TEAMCHAT_KEY, leaderboard:LEADERBOARD_KEY,
+  adminLog:ADMIN_LOG_KEY
 };
 const CLOUD_RAW_STRING_KEYS=new Set(["notice","admin2Active","teamChatLink"]);
 async function cloudPullAll(){
@@ -2026,7 +2309,7 @@ function refreshAllFromStorage(){
   tournamentConfig=loadConfig();
   renderTeams(); renderAdminTeams(); renderScoreboard(); renderRules(); renderMedia(); renderWinners();
   renderDynamicContent(); renderPlayerDashboard(); updateTimerLabels();
-  renderTeamChat(); renderLeaderboard(); checkRingEvent(); renderUsers();
+  renderTeamChat(); renderLeaderboard(); checkRingEvent(); renderUsers(); renderAdminLog();
   document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isAdmin()?"block":"none");
   document.querySelectorAll(".owner-only").forEach(el=>el.style.display=isPrimaryAdmin()?"":"none");
   restoreLegacyMedia();
