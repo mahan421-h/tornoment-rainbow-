@@ -1072,6 +1072,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-storage-compat.js"></script>
 <script>
 /* ============================================================
    Rainbow 2V2 Tournament — v2.0
@@ -1095,8 +1096,12 @@ const BALE_LINK = "https://ble.ir/join/GXRUPEvXRH";
 /* ===== Firebase Cloud Sync =====
    1) در Firebase Console یک Web App بسازید.
    2) مقدار firebaseConfig را با Config پروژه خودتان جایگزین کنید.
-   3) Firestore را فعال کنید. برای عکس‌ها از خود Firestore استفاده می‌شود و Firebase Storage لازم نیست.
-   4) Anonymous Authentication را فعال کنید.
+   3) Firestore را فعال کنید (برای متن‌ها و اطلاعات کوچک).
+   4) Firebase Storage را هم فعال کنید (برای خود فایل عکس‌ها — در Firestore فقط لینک عکس ذخیره می‌شود).
+   5) Anonymous Authentication را فعال کنید.
+   6) قوانین Firestore و Storage باید به کاربران anonymous اجازه‌ی خواندن/نوشتن بدهد، مثلاً:
+      Firestore:  allow read, write: if request.auth != null;
+      Storage:    allow read: if true; allow write: if request.auth != null;
 */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDumsQiQ2h6F5Lxg1oFgduPcKvMHQL3bqA",
@@ -1108,7 +1113,7 @@ const FIREBASE_CONFIG = {
   measurementId: "G-WYJ4G59K3V"
 };
 const FIREBASE_CONFIGURED = !Object.values(FIREBASE_CONFIG).some(v => String(v).includes("YOUR_"));
-let firebaseApp=null, firebaseDb=null, firebaseUser=null;
+let firebaseApp=null, firebaseDb=null, firebaseStorage=null, firebaseUser=null;
 let cloudLastError="";
 let lastRingSeenAt=Date.now();
 const CLOUD_NAMESPACE="rainbow_firebase_v1";
@@ -1119,6 +1124,7 @@ function initFirebase(){
   try{
     firebaseApp=firebase.apps.length?firebase.app():firebase.initializeApp(FIREBASE_CONFIG);
     firebaseDb=firebaseApp.firestore();
+    try{firebaseStorage=firebaseApp.storage();}catch(e){firebaseStorage=null;cloudLastError=String(e?.message||e);}
     firebaseApp.auth().onAuthStateChanged(u=>{firebaseUser=u||null;});
     firebaseApp.auth().signInAnonymously().catch(e=>{cloudLastError=String(e?.message||e);});
     return true;
@@ -1950,7 +1956,7 @@ async function saveMediaToCloud(m){
       for(const item of (m[type]||[])){
         if(!item || !item.id || typeof item.src!=="string") continue;
         const id=cloudKey(type+"_"+item.id).slice(0,120);
-        const data={type,id:String(item.id),src:item.src,name:String(item.name||"تصویر"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        const data={type,id:String(item.id),src:item.src,path:item.path||null,name:String(item.name||"تصویر"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         batch.set(col.doc(id),data);
         items.push(data);
       }
@@ -1964,7 +1970,7 @@ async function getMediaFromCloud(){
   try{
     const out={tournament:[],teamBracket:[],standings:[]};
     const snap=await firebaseDb.collection("rainbowMedia").get();
-    snap.forEach(doc=>{const x=doc.data()||{};if(out[x.type] && x.src)out[x.type].push({id:String(x.id||doc.id),src:String(x.src),name:String(x.name||"تصویر")});});
+    snap.forEach(doc=>{const x=doc.data()||{};if(out[x.type] && x.src)out[x.type].push({id:String(x.id||doc.id),src:String(x.src),path:x.path||null,name:String(x.name||"تصویر")});});
     Object.keys(out).forEach(k=>out[k].sort((a,b)=>String(a.id).localeCompare(String(b.id))));
     return out;
   }catch(e){cloudLastError=String(e?.message||e);return null;}
@@ -2015,17 +2021,43 @@ function ensureUploadProgressEl(){
   }
   return el;
 }
-/* مراحل فشرده‌سازی از کیفیت بالا به پایین؛ اولین حالتی که در محدودیت حجم Firestore جا شود انتخاب می‌شود */
-const IMAGE_QUALITY_STEPS=[[1600,0.9],[1440,0.85],[1280,0.82],[1100,0.78],[950,0.72],[800,0.62],[640,0.5]];
-const IMAGE_MAX_CHARS=900000; /* هر سند Firestore حداکثر حدود ۱ مگابایت است؛ برای امنیت کمی پایین‌تر نگه می‌داریم */
+/* مراحل فشرده‌سازی از کیفیت بالا به پایین؛ چون خود فایل عکس در Firebase Storage آپلود می‌شود
+   (نه در Firestore)، محدودیت حجم سند Firestore دیگر موضوعیت ندارد؛ فقط برای سرعت آپلود روی
+   اینترنت موبایل، حجم را تا حد معقولی پایین نگه می‌داریم. */
+const IMAGE_QUALITY_STEPS=[[1920,0.9],[1600,0.85],[1280,0.8],[1024,0.75]];
+const IMAGE_MAX_BYTES=6*1024*1024; /* هدف: حداکثر حدود ۶ مگابایت برای هر عکس */
 async function compressImageSmart(raw,onProgress){
   let best=null;
   for(const [dim,q] of IMAGE_QUALITY_STEPS){
     const data=await compressImage(raw,dim,q,onProgress);
     best=data;
-    if(data.length<=IMAGE_MAX_CHARS) return data;
+    const approxBytes=Math.ceil((data.length-"data:image/jpeg;base64,".length)*3/4);
+    if(approxBytes<=IMAGE_MAX_BYTES) return data;
   }
   return best;
+}
+function dataURLToBlob(dataUrl){
+  const commaIdx=dataUrl.indexOf(",");
+  const header=dataUrl.slice(0,commaIdx);
+  const base64=dataUrl.slice(commaIdx+1);
+  const mimeMatch=/data:(.*?);base64/.exec(header);
+  const mime=mimeMatch?mimeMatch[1]:"image/jpeg";
+  const bin=atob(base64);
+  const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+/* آپلود واقعی فایل عکس در Firebase Storage؛ فقط لینک نهایی (که کوچک است) در Firestore ذخیره می‌شود
+   تا همه‌ی کاربران آن را ببینند — این باعث می‌شود آپلود برای همه (نه فقط همان دستگاه) کار کند. */
+async function uploadImageToStorage(type,id,blob){
+  if(!firebaseStorage) return null;
+  try{
+    const path=`rainbowMedia/${type}/${id}.jpg`;
+    const ref=firebaseStorage.ref().child(path);
+    await ref.put(blob,{contentType:"image/jpeg"});
+    const url=await ref.getDownloadURL();
+    return {url,path};
+  }catch(e){cloudLastError=String(e?.message||e);return null;}
 }
 async function handleImageUpload(type,files){if(!adminAllowed('media'))return;
   if(!adminAllowed())return; if(!files||!files.length)return;
@@ -2043,8 +2075,17 @@ async function handleImageUpload(type,files){if(!adminAllowed('media'))return;
       try{
         const raw=await readImage(file,label);
         const data=await compressImageSmart(raw,label);
-        if(!data || data.length>IMAGE_MAX_CHARS+50000){ failCount++; continue; }
-        m[type].push({id:Date.now()+"-"+Math.random(),src:data,name:file.name});
+        if(!data){ failCount++; continue; }
+        const id=Date.now()+"-"+Math.random();
+        if(CLOUD_READY && firebaseStorage && (await waitFirebaseAuth())){
+          const blob=dataURLToBlob(data);
+          const uploaded=await uploadImageToStorage(type,id,blob);
+          if(!uploaded){ failCount++; continue; }
+          m[type].push({id,src:uploaded.url,path:uploaded.path,name:file.name});
+        }else{
+          /* بدون Firebase: فقط روی همین دستگاه ذخیره می‌شود و برای بقیه به اشتراک گذاشته نمی‌شود */
+          m[type].push({id,src:data,name:file.name});
+        }
       }catch(err){ failCount++; }
     }
     const cloudOk=await saveMedia(m); renderMedia();
@@ -2054,7 +2095,14 @@ async function handleImageUpload(type,files){if(!adminAllowed('media'))return;
   }catch(e){showToast("❌ آپلود عکس ناموفق بود");}
   finally{setTimeout(()=>{box.style.display="none";box.innerHTML=""},500);}
 }
-async function deleteMedia(type,id){if(!adminAllowed('media'))return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;const m=loadMedia();if(Array.isArray(m[type]))m[type]=m[type].filter(x=>x.id!==id);else if(m[type]?.id===id)m[type]=null;await saveMedia(m);renderMedia();showToast("🗑️ عکس حذف شد");}
+async function deleteMedia(type,id){if(!adminAllowed('media'))return;if(!confirm("این عکس برای همیشه حذف شود؟"))return;
+  const m=loadMedia();
+  let removed=null;
+  if(Array.isArray(m[type])){removed=m[type].find(x=>x.id===id)||null;m[type]=m[type].filter(x=>x.id!==id);}
+  else if(m[type]?.id===id){removed=m[type];m[type]=null;}
+  await saveMedia(m);renderMedia();
+  if(removed?.path && firebaseStorage){try{await firebaseStorage.ref().child(removed.path).delete();}catch(e){}}
+  showToast("🗑️ عکس حذف شد");}
 function mediaCard(item,type){
   if(!item)return `<div class="image-placeholder compact-placeholder">📷 به زودی</div>`;
   const deleteBtn=isAdmin()?`<button class="mini-btn danger media-delete" onclick="event.stopPropagation();deleteMedia('${type}','${item.id}')">🗑️ حذف</button>`:"";
@@ -2616,7 +2664,7 @@ function startCloudSync(){
         if(name==="media"){
           firebaseDb.collection("rainbowMedia").onSnapshot(snap=>{
             const val={tournament:[],teamBracket:[],standings:[]};
-            snap.forEach(doc=>{const x=doc.data()||{};if(val[x.type] && x.src)val[x.type].push({id:String(x.id||doc.id),src:String(x.src),name:String(x.name||"تصویر")});});
+            snap.forEach(doc=>{const x=doc.data()||{};if(val[x.type] && x.src)val[x.type].push({id:String(x.id||doc.id),src:String(x.src),path:x.path||null,name:String(x.name||"تصویر")});});
             Object.keys(val).forEach(k=>val[k].sort((a,b)=>String(a.id).localeCompare(String(b.id))));
             localStorage.setItem(CLOUD_KEY_MAP[name],JSON.stringify(val));
             refreshAllFromStorage();
