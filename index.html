@@ -467,6 +467,15 @@
   .profile-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .profile-players{margin-top:16px;display:grid;gap:8px}
   .player-chip{padding:11px 13px;border-radius:12px;background:#ffffff08;border:1px solid var(--line)}
+  .draw-players-list{margin-top:16px;display:grid;gap:8px;max-height:340px;overflow-y:auto}
+  .draw-player-row{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;background:#ffffff08;border:1px solid var(--line);cursor:pointer}
+  .draw-player-row:hover{border-color:var(--line-strong)}
+  .draw-player-row input{width:18px;height:18px;accent-color:var(--blue);flex-shrink:0}
+  .draw-players-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+  .draw-wheel-wrap{position:relative;display:flex;justify-content:center;margin-top:6px}
+  #drawWheelCanvas{border-radius:50%;border:3px solid var(--line-strong);box-shadow:0 0 40px #000a,0 0 0 6px #05060988}
+  .draw-wheel-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:26px;color:var(--gold);text-shadow:0 2px 6px #000,0 0 10px #f4bd3f88;z-index:2}
+  #drawSpinBtn:disabled{opacity:.5;cursor:default}
   .custom-banner{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(90deg,var(--red),var(--gold));color:#fff;text-align:center;padding:14px 16px;font-weight:900;font-size:clamp(16px,3vw,22px);z-index:999;box-shadow:0 -10px 40px #f4bd3f66;transform:translateY(110%);transition:transform .35s ease}
   .custom-banner.show{transform:translateY(0)}
   .custom-banner small{display:block;font-size:12px;font-weight:700;opacity:.9}
@@ -869,7 +878,7 @@
         <div class="actions" style="margin-top:12px">
           <button class="btn primary" onclick="saveAdminTeams()">💾 ذخیره تغییرات</button>
           <button class="btn" onclick="resetTeams()">↩️ بازنشانی تیم‌های اصلی</button>
-          <button class="btn" onclick="autoDrawTeams()">🎲 قرعه‌کشی خودکار تیم‌ها از روی بازیکنان</button>
+          <button class="btn" onclick="openDrawPlayersModal()">🎲 قرعه‌کشی خودکار تیم‌ها از روی بازیکنان</button>
         </div>
       </div>
 
@@ -1009,6 +1018,40 @@
       <button class="mini-btn" onclick="closeProfile()">✕</button>
     </div>
     <div class="profile-players" id="profilePlayers"></div>
+  </div>
+</div>
+
+<!-- Draw players selection -->
+<div class="profile-modal" id="drawPlayersModal" onclick="closeDrawPlayersModal(event)">
+  <div class="profile-card" onclick="event.stopPropagation()">
+    <div class="profile-head">
+      <strong>🎲 قرعه‌کشی تیم‌ها</strong>
+      <button class="mini-btn" onclick="closeDrawPlayersModal()">✕</button>
+    </div>
+
+    <div id="drawSelectStep">
+      <div class="muted" style="margin-top:8px;font-size:13px">بازیکنانی را که باید در قرعه‌کشی تصادفی شرکت کنند انتخاب کنید. بازیکنانی که تیک آن‌ها برداشته شود در تیم‌سازی تصادفی قرار نمی‌گیرند.</div>
+      <div class="draw-players-list" id="drawPlayersList"></div>
+      <div class="draw-players-actions">
+        <button class="btn" type="button" onclick="selectAllDrawPlayers(true)">✅ انتخاب همه</button>
+        <button class="btn" type="button" onclick="selectAllDrawPlayers(false)">◻️ لغو انتخاب همه</button>
+        <button class="btn primary" type="button" onclick="goToDrawWheel()">🎡 رفتن به گردونه</button>
+      </div>
+    </div>
+
+    <div id="drawWheelStep" style="display:none">
+      <div class="draw-wheel-wrap">
+        <canvas id="drawWheelCanvas" width="280" height="280"></canvas>
+        <div class="draw-wheel-pointer">▼</div>
+      </div>
+      <div class="draw-players-actions">
+        <button class="btn primary" type="button" id="drawSpinBtn" onclick="spinDrawWheel()">🎡 بچرخون</button>
+        <button class="btn" type="button" id="drawFinishBtn" style="display:none" onclick="finalizeDraw()">💾 تایید و ذخیره تیم‌ها</button>
+        <button class="btn" type="button" onclick="cancelDrawWheel()">↩️ بازگشت</button>
+      </div>
+      <div class="muted" style="margin-top:12px;font-size:13px">تیم‌های ساخته‌شده:</div>
+      <div class="draw-players-list" id="drawResultsList"></div>
+    </div>
   </div>
 </div>
 
@@ -1265,25 +1308,162 @@ async function resetTeams(){if(!adminAllowed('teams'))return;
   localStorage.removeItem(TEAMS_KEY); const ok=await sharedSet("teams",[...DEFAULT_TEAMS]); renderTeams(); renderAdminTeams(); renderDynamicContent();
   cloudResultToast(ok,"↩️ تیم‌ها بازنشانی و همگام‌سازی شدند");
 }
-async function autoDrawTeams(){if(!adminAllowed('teams'))return;
+let drawState=null;
+function openDrawPlayersModal(){if(!adminAllowed('teams'))return;
   if(!creatorOnly())return;
   const players=loadPlayerAccounts().filter(a=>a.active!==false);
   if(players.length<2){showToast("⚠️ حداقل ۲ بازیکن فعال لازم است");return}
-  if(!confirm("تیم‌های فعلی جایگزین می‌شوند و به‌صورت تصادفی از بین بازیکنان فعال تیم ساخته می‌شود. ادامه می‌دهید؟"))return;
-  const shuffled=players.slice().sort(()=>Math.random()-0.5);
+  drawState=null;
+  document.getElementById("drawSelectStep").style.display="";
+  document.getElementById("drawWheelStep").style.display="none";
+  const wrap=document.getElementById("drawPlayersList");
+  wrap.innerHTML=players.map(p=>`
+    <label class="draw-player-row">
+      <input type="checkbox" class="draw-player-check" value="${p.id}" checked>
+      <span>${escapeHtml(p.name||p.username)}</span>
+    </label>
+  `).join("");
+  document.getElementById("drawPlayersModal").classList.add("show");
+}
+function closeDrawPlayersModal(e){
+  if(e && e.target!==document.getElementById("drawPlayersModal")) return;
+  document.getElementById("drawPlayersModal").classList.remove("show");
+}
+function selectAllDrawPlayers(state){
+  document.querySelectorAll(".draw-player-check").forEach(c=>c.checked=state);
+}
+function goToDrawWheel(){
   const acc=loadPlayerAccounts();
-  const newTeams=[];
-  for(let i=0;i<shuffled.length;i+=2){
-    const p1=shuffled[i], p2=shuffled[i+1];
-    const n1=p1.name||p1.username, n2=p2?(p2.name||p2.username):null;
-    const teamName=n2?`${n1} + ${n2}`:`${n1} (تک نفره)`;
-    newTeams.push(teamName);
-    [p1,p2].forEach(p=>{if(p){const a=acc.find(x=>x.id===p.id);if(a)a.team=teamName;}});
+  const ids=[...document.querySelectorAll(".draw-player-check:checked")].map(c=>c.value);
+  if(ids.length<2){showToast("⚠️ حداقل ۲ بازیکن را انتخاب کنید");return}
+  const players=ids.map(id=>acc.find(a=>a.id===id)).filter(Boolean);
+  drawState={pool:players.slice(),buffer:[],teams:[],rotation:0,spinning:false};
+  document.getElementById("drawSelectStep").style.display="none";
+  document.getElementById("drawWheelStep").style.display="";
+  document.getElementById("drawResultsList").innerHTML="";
+  document.getElementById("drawSpinBtn").disabled=false;
+  document.getElementById("drawSpinBtn").style.display="";
+  document.getElementById("drawFinishBtn").style.display="none";
+  renderDrawWheel();
+}
+function drawPlayerLabel(p){return p.name||p.username;}
+function renderDrawWheel(){
+  const canvas=document.getElementById("drawWheelCanvas");
+  if(!canvas||!drawState)return;
+  const ctx=canvas.getContext("2d");
+  const names=drawState.pool.map(drawPlayerLabel);
+  const cx=canvas.width/2, cy=canvas.height/2, radius=cx-6;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const colors=["#168cff","#a76cff","#f4bd3f","#20d67a","#e93445"];
+  const n=names.length;
+  if(n===0)return;
+  const arc=(2*Math.PI)/n;
+  for(let i=0;i<n;i++){
+    const start=drawState.rotation+i*arc;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,radius,start,start+arc);
+    ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fill();
+    ctx.strokeStyle="#0a0d13";
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(start+arc/2);
+    ctx.fillStyle="#fff";
+    ctx.font="bold 12px Vazirmatn, Tahoma, sans-serif";
+    ctx.textAlign="right";
+    ctx.textBaseline="middle";
+    const label=names[i].length>10?names[i].slice(0,9)+"…":names[i];
+    ctx.fillText(label,radius-10,0);
+    ctx.restore();
   }
+}
+function spinDrawWheel(){
+  if(!drawState||drawState.spinning)return;
+  const n=drawState.pool.length;
+  if(n===0)return;
+  if(n===1){pickFromWheel(0);return;}
+  drawState.spinning=true;
+  document.getElementById("drawSpinBtn").disabled=true;
+  const arc=(2*Math.PI)/n;
+  const winnerIndex=Math.floor(Math.random()*n);
+  const pointerAngle=-Math.PI/2;
+  const targetCenter=winnerIndex*arc+arc/2;
+  const extraSpins=6+Math.floor(Math.random()*3);
+  let delta=(pointerAngle-targetCenter)-drawState.rotation;
+  delta=((delta%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  delta+=extraSpins*2*Math.PI;
+  const startRotation=drawState.rotation;
+  const duration=3200;
+  const startTime=performance.now();
+  function frame(now){
+    const t=Math.min(1,(now-startTime)/duration);
+    const eased=1-Math.pow(1-t,3);
+    drawState.rotation=startRotation+delta*eased;
+    renderDrawWheel();
+    if(t<1){
+      requestAnimationFrame(frame);
+    }else{
+      drawState.spinning=false;
+      pickFromWheel(winnerIndex);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+function pickFromWheel(index){
+  const picked=drawState.pool.splice(index,1)[0];
+  drawState.buffer.push(picked);
+  showToast(`🎯 ${drawPlayerLabel(picked)} انتخاب شد`);
+  if(drawState.buffer.length===2){
+    const [p1,p2]=drawState.buffer;
+    const teamName=`${drawPlayerLabel(p1)} + ${drawPlayerLabel(p2)}`;
+    drawState.teams.push({name:teamName,players:[p1,p2]});
+    drawState.buffer=[];
+    appendDrawResultRow(teamName);
+  }else if(drawState.pool.length===0 && drawState.buffer.length===1){
+    const p1=drawState.buffer[0];
+    const teamName=`${drawPlayerLabel(p1)} (تک نفره)`;
+    drawState.teams.push({name:teamName,players:[p1]});
+    drawState.buffer=[];
+    appendDrawResultRow(teamName);
+  }
+  renderDrawWheel();
+  if(drawState.pool.length===0){
+    document.getElementById("drawSpinBtn").style.display="none";
+    document.getElementById("drawFinishBtn").style.display="";
+  }else{
+    document.getElementById("drawSpinBtn").disabled=false;
+  }
+}
+function appendDrawResultRow(teamName){
+  const el=document.getElementById("drawResultsList");
+  const row=document.createElement("div");
+  row.className="draw-player-row";
+  row.innerHTML=`<span>🏳️ ${escapeHtml(teamName)}</span>`;
+  el.appendChild(row);
+}
+async function finalizeDraw(){if(!adminAllowed('teams'))return;
+  if(!creatorOnly())return;
+  if(!drawState||!drawState.teams.length)return;
+  const acc=loadPlayerAccounts();
+  const newTeams=drawState.teams.map(t=>t.name);
+  drawState.teams.forEach(t=>{
+    t.players.forEach(p=>{const a=acc.find(x=>x.id===p.id);if(a)a.team=t.name;});
+  });
   savePlayerAccounts(acc);
   await saveTeams(newTeams);
   logAdminActivity(`قرعه‌کشی خودکار تیم‌ها انجام شد (${newTeams.length} تیم)`);
-  showToast("🎲 قرعه‌کشی تیم‌ها انجام شد");
+  document.getElementById("drawPlayersModal").classList.remove("show");
+  showToast("🎲 قرعه‌کشی تیم‌ها ذخیره شد");
+  drawState=null;
+}
+function cancelDrawWheel(){
+  drawState=null;
+  document.getElementById("drawSelectStep").style.display="";
+  document.getElementById("drawWheelStep").style.display="none";
 }
 function topTeamOfWeek(){
   const teams=loadTeams();
