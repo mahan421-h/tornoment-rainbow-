@@ -993,7 +993,6 @@
     </div>
   </section>
 
-  <div class="live-connection-bar" id="liveConnectionBar"><span id="liveConnectionText">🟡 در حال بررسی اتصال اینترنت و Firebase...</span></div>
 <footer>
     <div>RAINBOW 2V2 TOURNAMENT • <span id="footerYear">۱۴۰۵</span></div>
     <div class="made" style="margin-top:6px;">ساخته شده با <span class="heart">❤</span> برای گیمرها</div>
@@ -2509,7 +2508,10 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 
 <div id="liveConnectionBar" class="live-connection-bar" aria-live="polite">
   <span id="liveConnectionDot" class="live-connection-dot"></span>
-  <span id="liveConnectionText">اتصال در حال بررسی...</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.4;">
+    <span id="liveConnectionText">اتصال در حال بررسی...</span>
+    <span id="cloudSyncBadge" style="font-size:10.5px;opacity:.72"></span>
+  </div>
 </div>
 
 </body>
