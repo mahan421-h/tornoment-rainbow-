@@ -1715,7 +1715,7 @@ function applyRoleUI(){
   document.querySelectorAll(".score-edit-btn").forEach(b=>{b.style.display=admin?"inline-block":"none";}); const at=document.getElementById("adminToggleButton"); if(at)at.style.display=admin?"inline-block":"none";
   document.querySelectorAll("#adminPanel").forEach(el=>el.classList.remove("show"));
   document.querySelectorAll(".creator-only-box").forEach(el=>el.style.display=isAdmin()?"block":"none"); document.querySelectorAll(".owner-only").forEach(el=>el.style.display=isPrimaryAdmin()?"":"none"); restoreLegacyMedia();
-  if(dash) dash.classList.toggle("show",role==="player"||admin);
+  if(dash) dash.classList.toggle("show",role==="player");
   renderMedia(); renderWinners(); renderRules(); renderDynamicContent(); renderPlayerDashboard(); updateTimerLabels();
   renderTeamChat(); renderLeaderboard(); renderUsers();
 }
@@ -2041,7 +2041,7 @@ function loadPlayerAccounts(){
   return DEFAULT_PLAYER_ACCOUNTS.slice();
 }
 function savePlayerAccounts(x){localStorage.setItem(PLAYER_ACCOUNTS_KEY,JSON.stringify(x));sharedSet("playerAccounts",x);}
-function currentPlayer(){const id=sessionStorage.getItem(PLAYER_SESSION_KEY);const found=id?loadPlayerAccounts().find(x=>x.id===id&&x.active!==false):null;if(found)return found;const role=getRole();if(role==="admin")return loadPlayerAccounts().find(x=>x.id==="p-dragon"&&x.active!==false)||null;if(role==="admin2")return loadPlayerAccounts().find(x=>x.id==="p-artin"&&x.active!==false)||null;return null}
+function currentPlayer(){const id=sessionStorage.getItem(PLAYER_SESSION_KEY);return loadPlayerAccounts().find(x=>x.id===id&&x.active!==false)||null}
 function addPlayerAccount(){if(!adminAllowed('players'))return;const u=document.getElementById("newPlayerUser").value.trim(),p=document.getElementById("newPlayerPass").value,n=document.getElementById("newPlayerName").value.trim(),cl=(document.getElementById("newPlayerChatLink")?.value||"").trim();if(!u||!p||!n){showToast("⚠️ نام کاربری، رمز و نام بازیکن را وارد کنید");return}const x=loadPlayerAccounts();if(x.some(a=>a.username===u)||loadAccounts().some(a=>a.username===u)){showToast("❌ این نام کاربری قبلاً وجود دارد");return}x.push({id:"p-"+Date.now()+"",username:u,password:p,name:n,progress:"0%",games:"0",team:"—",turn:"—",note:"",chatLink:cl,active:true});savePlayerAccounts(x);["newPlayerUser","newPlayerPass","newPlayerName","newPlayerChatLink"].forEach(id=>document.getElementById(id).value="");renderDynamicContent();logAdminActivity(`اکانت بازیکن جدید ساخته شد: ${u}`);showToast("✅ اکانت بازیکن ساخته شد")}
 function updatePlayer(id,key,value){if(!adminAllowed('players'))return;
   if(!adminAllowed())return;
@@ -2193,7 +2193,7 @@ function playerStatsPreviewHTML(a){
 }
 function renderPlayerDashboard(){
   const d=document.getElementById("playerDashboard");if(!d)return;const a=currentPlayer();
-  if(!(getRole()==="player"||isAdmin())||!a){d.classList.remove("show");return}
+  if(getRole()!=="player"||!a){d.classList.remove("show");return}
   d.classList.add("show");
   document.getElementById("playerWelcome").textContent=`🎮 ${a.name||a.username}`;
   const st=playerHistoryStats(a);
