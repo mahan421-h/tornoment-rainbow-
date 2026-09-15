@@ -719,9 +719,9 @@
 
       <div class="info-row">
         <div class="info"><div class="label">📅 تاریخ</div><div class="value" id="todayDate">—</div></div>
-        <div class="info"><div class="label">🎮 حالت</div><div class="value">2V2</div></div>
-        <div class="info"><div class="label">👥 حضور در روم</div><div class="value">۲۱:۳۰</div></div>
-        <div class="info"><div class="label">⏰ ورود به کاستوم</div><div class="value">۲۲:۰۰ تا ۲۲:۱۰</div></div>
+        <div class="info"><div class="label">🎮 حالت</div><div class="value" id="heroModeValue">2V2</div></div>
+        <div class="info"><div class="label">👥 حضور در روم</div><div class="value" id="heroRoomValue">۲۱:۳۰</div></div>
+        <div class="info"><div class="label">⏰ ورود به کاستوم</div><div class="value" id="heroStartValue">۲۲:۰۰ تا ۲۲:۱۰</div></div>
       </div>
     </div>
   </section>
@@ -730,9 +730,9 @@
   <section class="announce">
     <div class="a-head">📢 اطلاعیه رسمی تورنومنت 2V2</div>
     <div class="a-line"><span class="a-emoji">🎮</span><span><strong>زمان برگزاری:</strong> امروز</span></div>
-    <div class="a-line"><span class="a-emoji">⏰</span><span><strong>زمان ورود به روم Rainbow:</strong> ساعت ۲۱:۳۰ (۹ و نیم شب)</span></div>
+    <div class="a-line"><span class="a-emoji">⏰</span><span><strong>زمان ورود به روم Rainbow:</strong> ساعت <span id="announceRoomTime">۲۱:۳۰</span></span></div>
     <div class="a-line"><span class="a-emoji">💬</span><span><strong>گروه بله:</strong> <a href="https://ble.ir/join/GXRUPEvXRH" target="_blank" rel="noopener" style="color:#7fc4ff;font-weight:800;text-decoration:underline">ble.ir/join/GXRUPEvXRH</a> — حتماً عضو شوید</span></div>
-    <div class="a-line"><span class="a-emoji">⏱️</span><span><strong>زمان ورود به کاستوم:</strong> از ساعت ۲۲:۰۰ تا ۲۲:۱۰ — آماده باشید!</span></div>
+    <div class="a-line"><span class="a-emoji">⏱️</span><span><strong>زمان ورود به کاستوم:</strong> از ساعت <span id="announceStartTime">۲۲:۰۰</span> — آماده باشید!</span></div>
     <div class="a-line"><span class="a-emoji">⚠️</span><span><strong>قوانین:</strong></span></div>
     <div class="a-line"><span class="a-emoji">💣</span><span>تنها قانون بازی: <strong>زدن بمب بالا</strong> (شیلد آزاد است).</span></div>
     <div class="a-line"><span class="a-emoji">❌</span><span>تیمی که تا زمان تعیین‌شده حاضر نشود، <strong>حذف خواهد شد.</strong></span></div>
@@ -1334,18 +1334,24 @@ function closeDrawPlayersModal(e){
 function selectAllDrawPlayers(state){
   document.querySelectorAll(".draw-player-check").forEach(c=>c.checked=state);
 }
+function getDrawTeamSize(){
+  const m=/^([1-9])V[1-9]$/.exec(String(loadConfig().mode||"").toUpperCase());
+  return m?parseInt(m[1],10):2;
+}
 function goToDrawWheel(){
   const acc=loadPlayerAccounts();
   const ids=[...document.querySelectorAll(".draw-player-check:checked")].map(c=>c.value);
   if(ids.length<2){showToast("⚠️ حداقل ۲ بازیکن را انتخاب کنید");return}
   const players=ids.map(id=>acc.find(a=>a.id===id)).filter(Boolean);
-  drawState={pool:players.slice(),buffer:[],teams:[],rotation:0,spinning:false};
+  const teamSize=getDrawTeamSize();
+  drawState={pool:players.slice(),buffer:[],teams:[],rotation:0,spinning:false,teamSize};
   document.getElementById("drawSelectStep").style.display="none";
   document.getElementById("drawWheelStep").style.display="";
   document.getElementById("drawResultsList").innerHTML="";
   document.getElementById("drawSpinBtn").disabled=false;
   document.getElementById("drawSpinBtn").style.display="";
   document.getElementById("drawFinishBtn").style.display="none";
+  showToast(`ℹ️ تیم‌های ${faNum(teamSize)} نفره ساخته می‌شوند`);
   renderDrawWheel();
 }
 function drawPlayerLabel(p){return p.name||p.username;}
@@ -1419,16 +1425,15 @@ function pickFromWheel(index){
   const picked=drawState.pool.splice(index,1)[0];
   drawState.buffer.push(picked);
   showToast(`🎯 ${drawPlayerLabel(picked)} انتخاب شد`);
-  if(drawState.buffer.length===2){
-    const [p1,p2]=drawState.buffer;
-    const teamName=`${drawPlayerLabel(p1)} + ${drawPlayerLabel(p2)}`;
-    drawState.teams.push({name:teamName,players:[p1,p2]});
+  const teamSize=drawState.teamSize||2;
+  if(drawState.buffer.length===teamSize){
+    const teamName=drawState.buffer.map(drawPlayerLabel).join(" + ");
+    drawState.teams.push({name:teamName,players:drawState.buffer.slice()});
     drawState.buffer=[];
     appendDrawResultRow(teamName);
-  }else if(drawState.pool.length===0 && drawState.buffer.length===1){
-    const p1=drawState.buffer[0];
-    const teamName=`${drawPlayerLabel(p1)} (تک نفره)`;
-    drawState.teams.push({name:teamName,players:[p1]});
+  }else if(drawState.pool.length===0 && drawState.buffer.length>0 && drawState.buffer.length<teamSize){
+    const teamName=drawState.buffer.map(drawPlayerLabel).join(" + ")+(drawState.buffer.length===1?" (تک نفره)":" (ناقص)");
+    drawState.teams.push({name:teamName,players:drawState.buffer.slice()});
     drawState.buffer=[];
     appendDrawResultRow(teamName);
   }
@@ -1516,7 +1521,7 @@ function editScore(i){if(!adminAllowed('scores'))return;
   scores[team]={win:Math.max(0,parseInt(win)||0),loss:Math.max(0,parseInt(loss)||0)};
   localStorage.setItem(SCORES_KEY,JSON.stringify(scores)); sharedSet("scores",scores); renderScoreboard();
 }
-function updateProgress(){if(!adminAllowed('scores'))return;
+function updateProgress(){
   const total=loadTeams().length;
   const ready=total; // وضعیت فعلی صفحه همه تیم‌ها را آماده نشان می‌دهد
   document.getElementById("progressText").textContent=`${faNum(ready)} از ${faNum(total)} تیم آماده`;
@@ -1598,6 +1603,12 @@ function updateTimerLabels(){
   const heads=document.querySelectorAll(".timer-card .head");
   if(heads[0])heads[0].innerHTML=`🎧 ورود به <strong>روم Rainbow</strong> — ساعت ${faNum(c.roomTime)}`;
   if(heads[1])heads[1].innerHTML=`🔥 ورود به کاستوم — ساعت <strong>${faNum(c.startTime)}</strong> <span class="mode-badge">${escapeHtml(modeLabel)}</span>`;
+  const heroMode=document.getElementById("heroModeValue"); if(heroMode)heroMode.textContent=c.mode;
+  const heroRoom=document.getElementById("heroRoomValue"); if(heroRoom)heroRoom.textContent=faNum(c.roomTime);
+  const heroStart=document.getElementById("heroStartValue"); if(heroStart)heroStart.textContent=faNum(c.startTime);
+  const annRoom=document.getElementById("announceRoomTime"); if(annRoom)annRoom.textContent=faNum(c.roomTime);
+  const annStart=document.getElementById("announceStartTime"); if(annStart)annStart.textContent=faNum(c.startTime);
+  const todayDate=document.getElementById("todayDate"); if(todayDate && c.date){const [y,mo,d]=c.date.split("-").map(Number); if(y&&mo&&d)todayDate.textContent=faNum(new Intl.DateTimeFormat("fa-IR",{year:"numeric",month:"long",day:"numeric"}).format(new Date(y,mo-1,d)));}
 }
 function updateTimers(){
   const c=loadConfig(), now=new Date(), roomT=getNextConfiguredTarget(c.roomTime), startT=getNextConfiguredTarget(c.startTime);
